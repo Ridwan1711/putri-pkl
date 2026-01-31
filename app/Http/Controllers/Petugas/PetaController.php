@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Models\JadwalRutin;
 use App\Models\Penugasan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,8 +34,27 @@ class PetaController extends Controller
             ])
             ->values();
 
+        $hari = (int) now()->format('N');
+        $jadwalHariIni = JadwalRutin::where('armada_id', $petugas->armada_id)
+            ->hari($hari)
+            ->with(['kampung' => fn ($q) => $q->orderByPivot('urutan')])
+            ->first();
+
+        $routePoints = [];
+        if ($jadwalHariIni && $jadwalHariIni->kampung) {
+            foreach ($jadwalHariIni->kampung as $k) {
+                if ($k->latitude && $k->longitude) {
+                    $routePoints[] = [
+                        'lat' => (float) $k->latitude,
+                        'lng' => (float) $k->longitude,
+                    ];
+                }
+            }
+        }
+
         return Inertia::render('petugas/peta/index', [
             'markers' => $markers,
+            'routePoints' => $routePoints,
             'total' => $markers->count(),
         ]);
     }

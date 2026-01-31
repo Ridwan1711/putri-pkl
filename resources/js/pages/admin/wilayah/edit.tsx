@@ -58,13 +58,16 @@ export default function WilayahEdit({ wilayah }: Props) {
 
                 <form onSubmit={submit} className="space-y-6 max-w-2xl">
                     <div className="grid gap-2">
-                        <Label htmlFor="nama_wilayah">Nama Wilayah *</Label>
+                        <Label htmlFor="nama_wilayah">Nama Desa *</Label>
                         <Input
                             id="nama_wilayah"
                             value={data.nama_wilayah}
                             onChange={(e) => setData('nama_wilayah', e.target.value)}
                             required
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Hanya tambahkan Desa dalam Kecamatan yang sudah kerja sama.
+                        </p>
                         <InputError message={errors.nama_wilayah} />
                     </div>
 

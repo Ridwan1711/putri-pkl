@@ -51,17 +51,14 @@ import InputError from '@/components/input-error';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { toast } from 'react-hot-toast';
 import type { BreadcrumbItem } from '@/types';
-import type { Petugas, Armada, Wilayah } from '@/types/models';
+import type { Petugas, Armada, Wilayah, Kampung } from '@/types/models';
 
 export type JadwalRutin = {
     id: number;
-    petugas_id: number;
     armada_id: number;
     hari: number;
-    wilayah_id: number;
-    petugas?: Petugas;
-    armada?: Armada;
-    wilayah?: Wilayah;
+    armada?: Armada & { wilayah?: Wilayah; petugas?: Petugas[] };
+    kampung?: Kampung[];
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -91,16 +88,14 @@ const HARI_OPTIONS = [
 
 interface Props {
     jadwalRutin: JadwalRutin[];
-    petugas: Petugas[];
-    armada: Armada[];
-    wilayah: Wilayah[];
+    armada: (Armada & { wilayah?: Wilayah })[];
+    wilayah: (Wilayah & { kampung?: Kampung[] })[];
     hariOptions: Record<number, string>;
-    filters: { hari?: string; petugas_id?: string };
+    filters: { hari?: string; armada_id?: string };
 }
 
 export default function JadwalRutinIndex({
     jadwalRutin,
-    petugas,
     armada,
     wilayah,
     filters,
@@ -108,21 +103,24 @@ export default function JadwalRutinIndex({
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'table' | 'grid' | 'calendar'>('grid');
     const [selectedHari, setSelectedHari] = useState(filters.hari || 'all');
-    const [selectedPetugas, setSelectedPetugas] = useState(filters.petugas_id || 'all');
+    const [selectedArmada, setSelectedArmada] = useState(filters.armada_id || 'all');
     const [showAddForm, setShowAddForm] = useState(false);
     
     const form = useForm({
-        petugas_id: '',
         armada_id: '',
         hari: '',
-        wilayah_ids: [] as number[],
+        kampung_ids: [] as number[],
     });
 
+    const selectedArmadaData = armada.find((a) => a.id.toString() === form.data.armada_id);
+    const kampungForArmada = selectedArmadaData?.wilayah_id
+        ? (wilayah.find((w) => w.id === selectedArmadaData.wilayah_id)?.kampung ?? [])
+        : [];
+
     const handleFilter = () => {
-        const params: any = {};
+        const params: Record<string, string> = {};
         if (selectedHari !== 'all') params.hari = selectedHari;
-        if (selectedPetugas !== 'all') params.petugas_id = selectedPetugas;
-        
+        if (selectedArmada !== 'all') params.armada_id = selectedArmada;
         router.get('/admin/jadwal-rutin', params, { 
             preserveState: true,
             preserveScroll: true,
@@ -131,25 +129,25 @@ export default function JadwalRutinIndex({
 
     const handleResetFilters = () => {
         setSelectedHari('all');
-        setSelectedPetugas('all');
+        setSelectedArmada('all');
         router.get('/admin/jadwal-rutin', {}, { 
             preserveState: true,
             preserveScroll: true,
         });
     };
 
-    const toggleWilayah = (id: number) => {
-        const next = form.data.wilayah_ids.includes(id)
-            ? form.data.wilayah_ids.filter((w) => w !== id)
-            : [...form.data.wilayah_ids, id];
-        form.setData('wilayah_ids', next);
+    const toggleKampung = (id: number) => {
+        const next = form.data.kampung_ids.includes(id)
+            ? form.data.kampung_ids.filter((k) => k !== id)
+            : [...form.data.kampung_ids, id];
+        form.setData('kampung_ids', next);
     };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (form.data.wilayah_ids.length === 0) {
-            form.setError('wilayah_ids', 'Pilih minimal satu wilayah');
-            toast.error('Pilih minimal satu wilayah');
+        if (form.data.kampung_ids.length === 0) {
+            form.setError('kampung_ids', 'Pilih minimal satu kampung');
+            toast.error('Pilih minimal satu kampung');
             return;
         }
         form.post('/admin/jadwal-rutin', {
@@ -190,12 +188,10 @@ export default function JadwalRutinIndex({
         return acc;
     }, {} as Record<number, JadwalRutin[]>);
 
-    // Calculate stats
     const stats = {
         totalJadwal: jadwalRutin.length,
-        petugasAktif: Array.from(new Set(jadwalRutin.map(j => j.petugas_id))).length,
-        wilayahTercover: Array.from(new Set(jadwalRutin.map(j => j.wilayah_id))).length,
         armadaTerpakai: Array.from(new Set(jadwalRutin.map(j => j.armada_id))).length,
+        kampungTercover: jadwalRutin.reduce((sum, j) => sum + (j.kampung?.length ?? 0), 0),
     };
 
     // Get unique hari from jadwal for calendar view
@@ -269,8 +265,8 @@ export default function JadwalRutinIndex({
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-600">Petugas Aktif</p>
-                                        <h3 className="text-2xl font-bold mt-1">{stats.petugasAktif}</h3>
+                                        <p className="text-sm font-medium text-gray-600">Armada Terpakai</p>
+                                        <h3 className="text-2xl font-bold mt-1">{stats.armadaTerpakai}</h3>
                                     </div>
                                     <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                                         <Users className="h-5 w-5 text-green-600" />
@@ -284,7 +280,7 @@ export default function JadwalRutinIndex({
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-gray-600">Wilayah Tercover</p>
-                                        <h3 className="text-2xl font-bold mt-1">{stats.wilayahTercover}</h3>
+                                        <h3 className="text-2xl font-bold mt-1">{stats.kampungTercover}</h3>
                                     </div>
                                     <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
                                         <MapPin className="h-5 w-5 text-purple-600" />
@@ -333,32 +329,7 @@ export default function JadwalRutinIndex({
                                         </Select>
                                     </div>
                                     
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Petugas</Label>
-                                        <Select
-                                            value={selectedPetugas}
-                                            onValueChange={setSelectedPetugas}
-                                        >
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue placeholder="Semua Petugas" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Semua Petugas</SelectItem>
-                                                {petugas.map((p) => (
-                                                    <SelectItem key={p.id} value={p.id.toString()}>
-                                                        <div className="flex items-center gap-2">
-                                                            <Avatar className="h-5 w-5">
-                                                                <AvatarFallback className="text-xs">
-                                                                    {p.user?.name?.charAt(0) || 'P'}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            {p.user?.name || '-'}
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    
                                     
                                     <div className="flex items-end gap-2">
                                         <Button onClick={handleFilter}>
@@ -448,13 +419,11 @@ export default function JadwalRutinIndex({
                                                                 <div className="flex items-center gap-2">
                                                                     <Avatar className="h-8 w-8">
                                                                         <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
-                                                                            {jadwal.petugas?.user?.name?.charAt(0) || 'P'}
+                                                                            {jadwal.armada?.kode_armada?.charAt(0) || 'A'}
                                                                         </AvatarFallback>
                                                                     </Avatar>
                                                                     <div>
-                                                                        <p className="font-medium text-sm">
-                                                                            {jadwal.petugas?.user?.name || '-'}
-                                                                        </p>
+                                                                        
                                                                         <p className="text-xs text-gray-500">
                                                                             {jadwal.armada?.kode_armada || '-'}
                                                                         </p>
@@ -490,7 +459,7 @@ export default function JadwalRutinIndex({
                                                             </div>
                                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                                 <MapPin className="h-3 w-3" />
-                                                                <span>{jadwal.wilayah?.nama_wilayah || '-'}</span>
+                                                                <span>{(jadwal.kampung ?? []).map((k) => k.nama_kampung).join(', ') || '-'}</span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -531,7 +500,7 @@ export default function JadwalRutinIndex({
                                                                 Tidak ada jadwal ditemukan
                                                             </h3>
                                                             <p className="text-gray-500 mb-4">
-                                                                {selectedHari !== 'all' || selectedPetugas !== 'all'
+                                                                {selectedHari !== 'all'
                                                                     ? 'Coba ubah filter pencarian'
                                                                     : 'Mulai dengan menambahkan jadwal baru'}
                                                             </p>
@@ -554,12 +523,12 @@ export default function JadwalRutinIndex({
                                                             <div className="flex items-center gap-2">
                                                                 <Avatar className="h-8 w-8">
                                                                     <AvatarFallback className="text-xs">
-                                                                        {j.petugas?.user?.name?.charAt(0) || 'P'}
+                                                                        {j.armada?.kode_armada?.charAt(0) || 'A'}
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div>
-                                                                    <p className="font-medium">{j.petugas?.user?.name || '-'}</p>
-                                                                    <p className="text-xs text-gray-500">{j.petugas?.user?.email || '-'}</p>
+                                                                    <p className="font-medium">{j.armada?.kode_armada || '-'}</p>
+                                                                    <p className="text-xs text-gray-500">{j.armada?.wilayah?.nama_wilayah || '-'}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -576,8 +545,8 @@ export default function JadwalRutinIndex({
                                                             <div className="flex items-center gap-2">
                                                                 <MapPin className="h-4 w-4 text-gray-400" />
                                                                 <div>
-                                                                    <p className="font-medium">{j.wilayah?.nama_wilayah || '-'}</p>
-                                                                    <p className="text-xs text-gray-500">{j.wilayah?.kecamatan || '-'}</p>
+                                                                    <p className="font-medium">{(j.kampung ?? []).map((k) => k.nama_kampung).join(', ') || '-'}</p>
+                                                                    <p className="text-xs text-gray-500">{(j.kampung ?? []).length} kampung</p>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -621,8 +590,8 @@ export default function JadwalRutinIndex({
                                                 <div className="space-y-2">
                                                     {jadwalHariIni.map((jadwal) => (
                                                         <div key={jadwal.id} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs">
-                                                            <p className="font-medium truncate">{jadwal.petugas?.user?.name}</p>
-                                                            <p className="text-blue-600 truncate">{jadwal.wilayah?.nama_wilayah}</p>
+                                                            <p className="font-medium truncate">{jadwal.armada?.kode_armada}</p>
+                                                            <p className="text-blue-600 truncate">{(jadwal.kampung ?? []).map((k) => k.nama_kampung).join(', ')}</p>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -650,47 +619,17 @@ export default function JadwalRutinIndex({
                             Tambah Jadwal Rutin
                         </DialogTitle>
                         <DialogDescription>
-                            Tambahkan jadwal rutin untuk petugas dan armada di wilayah tertentu
+                            Tambahkan jadwal rutin armada di kampung tertentu
                         </DialogDescription>
                     </DialogHeader>
                     
                     <form onSubmit={submit} className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="petugas_id">Petugas *</Label>
-                                <Select
-                                    value={form.data.petugas_id}
-                                    onValueChange={(v) => form.setData('petugas_id', v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih Petugas" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {petugas.map((p) => (
-                                            <SelectItem key={p.id} value={p.id.toString()}>
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-5 w-5">
-                                                        <AvatarFallback className="text-xs">
-                                                            {p.user?.name?.charAt(0) || 'P'}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-medium">{p.user?.name || '-'}</p>
-                                                        <p className="text-xs text-gray-500">{p.wilayah?.nama_wilayah || '-'}</p>
-                                                    </div>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={form.errors.petugas_id} />
-                            </div>
-                            
-                            <div className="space-y-2">
                                 <Label htmlFor="armada_id">Armada *</Label>
                                 <Select
                                     value={form.data.armada_id}
-                                    onValueChange={(v) => form.setData('armada_id', v)}
+                                    onValueChange={(v) => form.setData({ ...form.data, armada_id: v, kampung_ids: [] })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Pilih Armada" />
@@ -730,41 +669,44 @@ export default function JadwalRutinIndex({
                             </div>
                             
                             <div className="space-y-2">
-                                <Label htmlFor="wilayah_ids">Wilayah *</Label>
+                                <Label htmlFor="kampung_ids">Kampung *</Label>
                                 <div className="text-sm text-gray-500 mb-2">
-                                    Pilih minimal 1 wilayah
+                                    Pilih minimal 1 kampung (dari desa armada)
                                 </div>
                             </div>
                         </div>
                         
                         <div className="space-y-2">
-                            <Label>Daftar Wilayah</Label>
+                            <Label>Daftar Kampung</Label>
                             <div className="max-h-60 overflow-y-auto border rounded-lg p-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {wilayah.map((w) => (
-                                        <div key={w.id} className="flex items-center gap-2">
+                                    {kampungForArmada.map((k) => (
+                                        <div key={k.id} className="flex items-center gap-2">
                                             <Checkbox
-                                                id={`wilayah_${w.id}`}
-                                                checked={form.data.wilayah_ids.includes(w.id)}
-                                                onCheckedChange={() => toggleWilayah(w.id)}
+                                                id={`kampung_${k.id}`}
+                                                checked={form.data.kampung_ids.includes(k.id)}
+                                                onCheckedChange={() => toggleKampung(k.id)}
                                             />
                                             <Label
-                                                htmlFor={`wilayah_${w.id}`}
+                                                htmlFor={`kampung_${k.id}`}
                                                 className="cursor-pointer text-sm flex-1"
                                             >
-                                                <div className="font-medium">{w.nama_wilayah}</div>
-                                                <div className="text-gray-500 text-xs">{w.kecamatan}</div>
+                                                <div className="font-medium">{k.nama_kampung}</div>
                                             </Label>
-                                            {form.data.wilayah_ids.includes(w.id) && (
+                                            {form.data.kampung_ids.includes(k.id) && (
                                                 <Badge variant="outline" className="text-xs">
                                                     Terpilih
                                                 </Badge>
                                             )}
                                         </div>
                                     ))}
+                                    {kampungForArmada.length === 0 && form.data.armada_id && (
+                                        <p className="col-span-2 text-sm text-amber-600">Desa armada ini belum punya kampung. Tambah kampung dulu di menu Wilayah.</p>
+                                    )}
                                 </div>
                             </div>
-                            <InputError message={form.errors.wilayah_ids} />
+                            {!form.data.armada_id && <p className="text-sm text-amber-600">Pilih armada dulu</p>}
+                            <InputError message={form.errors.kampung_ids} />
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4">

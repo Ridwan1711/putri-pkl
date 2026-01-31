@@ -511,8 +511,7 @@ export default function ArmadaIndex({ armada, filters }: Props) {
                                                 armada.data.map((row) => (
                                                     <tr 
                                                         key={row.id} 
-                                                        className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
-                                                        onClick={() => router.visit(`/admin/armada/${row.id}`)}
+                                                        className="border-b hover:bg-gray-50 transition-colors"
                                                     >
                                                         {columns.map((column, index) => (
                                                             <td key={index} className="py-4 px-4">

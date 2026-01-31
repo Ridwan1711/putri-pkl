@@ -45,12 +45,16 @@ export default function Welcome({
         no_telepon: '',
         email: '',
         wilayah_id: '',
+        kampung_id: '',
         alamat_lengkap: '',
         latitude: null as number | null,
         longitude: null as number | null,
         estimasi_volume: '',
         foto_sampah: null as File | null,
     });
+
+    const selectedWilayah = wilayah.find((w) => w.id.toString() === guestForm.data.wilayah_id);
+    const kampungList = selectedWilayah?.kampung ?? [];
 
     const scrollToSection = (id: string) => {
         const el = document.getElementById(id);
@@ -300,13 +304,15 @@ export default function Welcome({
                                     <InputError message={guestForm.errors.email} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="wilayah_id">Wilayah</Label>
+                                    <Label htmlFor="wilayah_id">Desa / Wilayah Layanan</Label>
                                     <Select
                                         value={guestForm.data.wilayah_id}
-                                        onValueChange={(value) => guestForm.setData('wilayah_id', value)}
+                                        onValueChange={(value) =>
+                                            guestForm.setData({ ...guestForm.data, wilayah_id: value, kampung_id: '' })
+                                        }
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Pilih Wilayah" />
+                                            <SelectValue placeholder="Pilih Desa di wilayah kerja sama" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {wilayah.map((w) => (
@@ -318,6 +324,32 @@ export default function Welcome({
                                     </Select>
                                     <InputError message={guestForm.errors.wilayah_id} />
                                 </div>
+                                {guestForm.data.wilayah_id && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="kampung_id">Kampung / Dusun</Label>
+                                        <Select
+                                            value={guestForm.data.kampung_id}
+                                            onValueChange={(value) => guestForm.setData('kampung_id', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Kampung" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {kampungList.map((k) => (
+                                                    <SelectItem key={k.id} value={k.id.toString()}>
+                                                        {k.nama_kampung}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {kampungList.length === 0 && (
+                                            <p className="text-xs text-amber-600">
+                                                Desa ini belum punya kampung. Admin perlu menambah kampung terlebih dahulu.
+                                            </p>
+                                        )}
+                                        <InputError message={guestForm.errors.kampung_id} />
+                                    </div>
+                                )}
                                 <div className="grid gap-2">
                                     <Label htmlFor="alamat_lengkap">Alamat Lengkap</Label>
                                     <Input

@@ -50,7 +50,7 @@ class PengajuanController extends Controller
                 'riwayatStatus.changedBy',
                 'lampiran',
             ]),
-            'petugas' => Petugas::with(['user', 'armada', 'wilayah', 'jadwalRutin.wilayah'])
+            'petugas' => Petugas::with(['user', 'armada.wilayah', 'armada.jadwalRutin.kampung', 'wilayah'])
                 ->where('is_available', true)
                 ->get(),
             'armada' => Armada::where('status', 'aktif')->get(),

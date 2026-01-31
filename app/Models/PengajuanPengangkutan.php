@@ -18,6 +18,7 @@ class PengajuanPengangkutan extends Model
         'email',
         'ip_address',
         'wilayah_id',
+        'kampung_id',
         'alamat_lengkap',
         'latitude',
         'longitude',
@@ -42,6 +43,11 @@ class PengajuanPengangkutan extends Model
     public function wilayah(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Wilayah::class);
+    }
+
+    public function kampung(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Kampung::class);
     }
 
     public function penugasan(): \Illuminate\Database\Eloquent\Relations\HasMany

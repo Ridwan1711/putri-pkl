@@ -24,12 +24,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function CreatePengajuan({ wilayah }: { wilayah: Wilayah[] }) {
     const { data, setData, post, processing, errors } = useForm({
         wilayah_id: '',
+        kampung_id: '',
         alamat_lengkap: '',
         latitude: null as number | null,
         longitude: null as number | null,
         estimasi_volume: '',
         foto_sampah: null as File | null,
     });
+
+    const selectedWilayah = wilayah.find((w) => w.id.toString() === data.wilayah_id);
+    const kampungList = selectedWilayah?.kampung ?? [];
 
     const handleLocationSelect = (lat: number, lng: number) => {
         setData({
@@ -53,13 +57,13 @@ export default function CreatePengajuan({ wilayah }: { wilayah: Wilayah[] }) {
                 <h1 className="text-2xl font-bold">Buat Pengajuan Pengangkutan</h1>
                 <form onSubmit={submit} className="space-y-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="wilayah_id">Wilayah</Label>
+                        <Label htmlFor="wilayah_id">Desa / Wilayah Layanan</Label>
                         <Select
                             value={data.wilayah_id}
-                            onValueChange={(value) => setData('wilayah_id', value)}
+                            onValueChange={(value) => setData({ ...data, wilayah_id: value, kampung_id: '' })}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Pilih Wilayah" />
+                                <SelectValue placeholder="Pilih Desa di wilayah kerja sama" />
                             </SelectTrigger>
                             <SelectContent>
                                 {wilayah.map((w) => (
@@ -71,6 +75,33 @@ export default function CreatePengajuan({ wilayah }: { wilayah: Wilayah[] }) {
                         </Select>
                         <InputError message={errors.wilayah_id} />
                     </div>
+
+                    {data.wilayah_id && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="kampung_id">Kampung / Dusun</Label>
+                            <Select
+                                value={data.kampung_id}
+                                onValueChange={(value) => setData('kampung_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Kampung" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kampungList.map((k) => (
+                                        <SelectItem key={k.id} value={k.id.toString()}>
+                                            {k.nama_kampung}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {kampungList.length === 0 && (
+                                <p className="text-xs text-amber-600">
+                                    Desa ini belum punya kampung. Hubungi admin.
+                                </p>
+                            )}
+                            <InputError message={errors.kampung_id} />
+                        </div>
+                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="alamat_lengkap">Alamat Lengkap</Label>

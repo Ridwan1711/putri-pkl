@@ -13,25 +13,25 @@ class JadwalRutin extends Model
     protected $table = 'jadwal_rutin';
 
     protected $fillable = [
-        'petugas_id',
         'armada_id',
         'hari',
-        'wilayah_id',
     ];
-
-    public function petugas(): \Illuminate\Database\Eloquent\Relations\BelongsTo
-    {
-        return $this->belongsTo(Petugas::class);
-    }
 
     public function armada(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Armada::class);
     }
 
-    public function wilayah(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function jadwalRutinKampung(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->belongsTo(Wilayah::class);
+        return $this->hasMany(JadwalRutinKampung::class);
+    }
+
+    public function kampung(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Kampung::class, 'jadwal_rutin_kampung')
+            ->withPivot('urutan')
+            ->orderByPivot('urutan');
     }
 
     public function scopeHari(Builder $query, int $hari): Builder
@@ -39,8 +39,8 @@ class JadwalRutin extends Model
         return $query->where('hari', $hari);
     }
 
-    public function scopePetugas(Builder $query, int $petugasId): Builder
+    public function scopeArmada(Builder $query, int $armadaId): Builder
     {
-        return $query->where('petugas_id', $petugasId);
+        return $query->where('armada_id', $armadaId);
     }
 }

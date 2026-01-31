@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { MapToolbar } from './MapToolbar';
 
 // Fix for default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -16,6 +17,17 @@ interface MapPickerProps {
     longitude?: number | null;
     onLocationSelect: (lat: number, lng: number) => void;
     height?: string;
+    showToolbar?: boolean;
+}
+
+function FlyTo({ target }: { target: [number, number] | null }) {
+    const map = useMap();
+    useEffect(() => {
+        if (target) {
+            map.flyTo(target, 15, { duration: 0.5 });
+        }
+    }, [target, map]);
+    return null;
 }
 
 function LocationMarker({
@@ -44,10 +56,17 @@ function LocationMarker({
     return markerPosition ? <Marker position={markerPosition} /> : null;
 }
 
-export function MapPicker({ latitude, longitude, onLocationSelect, height = '400px' }: MapPickerProps) {
+export function MapPicker({
+    latitude,
+    longitude,
+    onLocationSelect,
+    height = '400px',
+    showToolbar = true,
+}: MapPickerProps) {
     const [position, setPosition] = useState<[number, number] | null>(
         latitude && longitude ? [latitude, longitude] : null,
     );
+    const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
 
     useEffect(() => {
         if (latitude && longitude) {
@@ -57,8 +76,17 @@ export function MapPicker({ latitude, longitude, onLocationSelect, height = '400
 
     const center: [number, number] = position || [-6.2088, 106.8456]; // Default to Jakarta
 
+    const handleToolbarLocation = (lat: number, lng: number) => {
+        const coord: [number, number] = [lat, lng];
+        setPosition(coord);
+        onLocationSelect(lat, lng);
+        setFlyTarget(coord);
+        setTimeout(() => setFlyTarget(null), 100);
+    };
+
     return (
-        <div style={{ height }} className="w-full rounded-lg overflow-hidden border">
+        <div style={{ height }} className="w-full rounded-lg overflow-hidden border relative">
+            {showToolbar && <MapToolbar onLocationFound={handleToolbarLocation} />}
             <MapContainer
                 center={center}
                 zoom={position ? 15 : 12}
@@ -68,6 +96,7 @@ export function MapPicker({ latitude, longitude, onLocationSelect, height = '400
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <FlyTo target={flyTarget} />
                 <LocationMarker
                     position={position}
                     onPositionChange={(lat, lng) => {

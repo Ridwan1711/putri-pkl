@@ -39,8 +39,13 @@ class Wilayah extends Model
         return $this->hasMany(Petugas::class);
     }
 
-    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function kampung(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(JadwalRutin::class);
+        return $this->hasMany(Kampung::class);
+    }
+
+    public function armada(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Armada::class, 'wilayah_id');
     }
 }

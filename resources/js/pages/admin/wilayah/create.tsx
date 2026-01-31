@@ -53,13 +53,16 @@ export default function WilayahCreate() {
 
                 <form onSubmit={submit} className="space-y-6 max-w-2xl">
                     <div className="grid gap-2">
-                        <Label htmlFor="nama_wilayah">Nama Wilayah *</Label>
+                        <Label htmlFor="nama_wilayah">Nama Desa *</Label>
                         <Input
                             id="nama_wilayah"
                             value={data.nama_wilayah}
                             onChange={(e) => setData('nama_wilayah', e.target.value)}
                             required
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Hanya tambahkan Desa dalam Kecamatan yang sudah kerja sama.
+                        </p>
                         <InputError message={errors.nama_wilayah} />
                     </div>
 
@@ -75,7 +78,7 @@ export default function WilayahCreate() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Centroid Wilayah (untuk auto-assign 4km)</Label>
+                        <Label>Markas Desa (untuk auto-assign pengajuan ke petugas dalam radius 4km)</Label>
                         <MapPicker
                             latitude={data.latitude}
                             longitude={data.longitude}
@@ -87,22 +90,6 @@ export default function WilayahCreate() {
                         </p>
                         <InputError message={errors.latitude} />
                         <InputError message={errors.longitude} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="geojson">GeoJSON (Opsional)</Label>
-                        <Textarea
-                            id="geojson"
-                            value={data.geojson}
-                            onChange={(e) => setData('geojson', e.target.value)}
-                            placeholder='{"type": "FeatureCollection", "features": [...]}'
-                            rows={10}
-                            className="font-mono text-sm"
-                        />
-                        <InputError message={errors.geojson} />
-                        <p className="text-xs text-muted-foreground">
-                            Masukkan GeoJSON untuk polygon wilayah. Kosongkan jika belum ada.
-                        </p>
                     </div>
 
                     <div className="flex items-center gap-2">

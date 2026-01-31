@@ -87,6 +87,45 @@ interface GrafikStatusArmada {
   nonaktif: number;
 }
 
+interface Analytics {
+  pengajuan_per_wilayah: Array<{ wilayah: string; total: number }>;
+  pengajuan_per_hari: Array<{ hari: string; total: number }>;
+  pengajuan_7_hari_terakhir: Array<{ tanggal: string; label: string; total: number }>;
+  sumber_pengajuan: { guest: number; terdaftar: number };
+  petugas_terproduktif: Array<{ nama: string; total: number }>;
+  top_kampung: Array<{ kampung: string; total: number }>;
+}
+
+interface ReportWilayah {
+  nama: string;
+  kecamatan: string;
+  total_pengajuan: number;
+  is_active: boolean;
+}
+
+interface ReportPengajuan {
+  id: number;
+  nama_pemohon: string;
+  alamat: string;
+  wilayah: string;
+  kampung: string;
+  status: string;
+  created_at: string;
+}
+
+interface Reports {
+  ringkasan: {
+    total_pengajuan: number;
+    selesai: number;
+    ditolak: number;
+    sampah_kg: number;
+    sampah_ton: number;
+    tanggal_cetak: string;
+  };
+  per_wilayah: ReportWilayah[];
+  pengajuan_terbaru: ReportPengajuan[];
+}
+
 interface Stats {
   total_pengajuan: number;
   wilayah_aktif: number;
@@ -102,6 +141,8 @@ interface Stats {
   pengajuan_minggu_lalu: number;
   pertumbuhan: number;
   rating_kepuasan: number;
+  analytics: Analytics;
+  reports: Reports;
 }
 
 const CHART_COLORS = {
@@ -128,10 +169,27 @@ const ARMADA_COLORS = {
   nonaktif: 'hsl(0 84.2% 60.2%)',
 };
 
+const defaultAnalytics: Analytics = {
+  pengajuan_per_wilayah: [],
+  pengajuan_per_hari: [],
+  pengajuan_7_hari_terakhir: [],
+  sumber_pengajuan: { guest: 0, terdaftar: 0 },
+  petugas_terproduktif: [],
+  top_kampung: [],
+};
+
+const defaultReports: Reports = {
+  ringkasan: { total_pengajuan: 0, selesai: 0, ditolak: 0, sampah_kg: 0, sampah_ton: 0, tanggal_cetak: '' },
+  per_wilayah: [],
+  pengajuan_terbaru: [],
+};
+
 export default function AdminDashboard({ stats }: { stats: Stats }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('monthly');
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const analytics = stats.analytics ?? defaultAnalytics;
+  const reports = stats.reports ?? defaultReports;
 
   const armadaChartData = [
     { name: 'Aktif', value: stats.grafik_status_armada.aktif, color: ARMADA_COLORS.aktif },
@@ -180,7 +238,7 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
                 </p>
               </div>
               
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 print:hidden">
                 <Select value={timeRange} onValueChange={setTimeRange}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue />
@@ -211,7 +269,7 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
         {/* Main Content */}
         <div className="container mx-auto px-4 py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-4 print:hidden">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Overview
@@ -722,22 +780,362 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
               </div>
             </TabsContent>
 
-            {/* Bakal Datang : Analitika Pengajuan */}
+            {/* Analitika Pengajuan */}
             <TabsContent value="analytics" className="space-y-6">
-              <div className="w-full h-full mt-35 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">Analitika Pengajuan</p>
-                  <p className="text-sm text-gray-500">Coming soon</p>
-                </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-blue-500" />
+                      Pengajuan per Wilayah (Top 10)
+                    </CardTitle>
+                    <CardDescription>
+                      Desa dengan jumlah pengajuan terbanyak
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-72">
+                      {analytics.pengajuan_per_wilayah.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={analytics.pengajuan_per_wilayah}
+                            layout="vertical"
+                            margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                            <YAxis
+                              type="category"
+                              dataKey="wilayah"
+                              width={75}
+                              tick={{ fontSize: 10 }}
+                              stroke="hsl(var(--muted-foreground))"
+                            />
+                            <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} />
+                            <Bar dataKey="total" name="Pengajuan" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} maxBarSize={24} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-gray-500">
+                          <BarChart3 className="h-12 w-12 mb-3 text-gray-300" />
+                          <p>Belum ada data pengajuan per wilayah</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-green-500" />
+                      Pengajuan 7 Hari Terakhir
+                    </CardTitle>
+                    <CardDescription>
+                      Trend pengajuan harian
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-72">
+                      {analytics.pengajuan_7_hari_terakhir.some((d) => d.total > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analytics.pengajuan_7_hari_terakhir} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                            <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} />
+                            <Area type="monotone" dataKey="total" name="Pengajuan" stroke={CHART_COLORS.primary} fillOpacity={1} fill="url(#colorTotal)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-gray-500">
+                          <Activity className="h-12 w-12 mb-3 text-gray-300" />
+                          <p>Tidak ada pengajuan 7 hari terakhir</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-500" />
+                      Sumber Pengajuan
+                    </CardTitle>
+                    <CardDescription>
+                      Guest vs Pengguna Terdaftar
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-48">
+                      {(analytics.sumber_pengajuan.guest + analytics.sumber_pengajuan.terdaftar) > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Guest / Tanpa Login', value: analytics.sumber_pengajuan.guest, color: CHART_COLORS.warning },
+                                { name: 'Pengguna Terdaftar', value: analytics.sumber_pengajuan.terdaftar, color: CHART_COLORS.success },
+                              ].filter((d) => d.value > 0)}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={70}
+                              paddingAngle={2}
+                              label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                            >
+                              {[
+                                { name: 'Guest', value: analytics.sumber_pengajuan.guest, color: CHART_COLORS.warning },
+                                { name: 'Terdaftar', value: analytics.sumber_pengajuan.terdaftar, color: CHART_COLORS.success },
+                              ]
+                                .filter((d) => d.value > 0)
+                                .map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-gray-500">
+                          <UserCheck className="h-12 w-12 mb-3 text-gray-300" />
+                          <p>Belum ada data sumber pengajuan</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-orange-500" />
+                      Pengajuan per Hari dalam Minggu
+                    </CardTitle>
+                    <CardDescription>
+                      Distribusi pengajuan berdasarkan hari
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-48">
+                      {analytics.pengajuan_per_hari.some((d) => d.total > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analytics.pengajuan_per_hari} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis dataKey="hari" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                            <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} />
+                            <Bar dataKey="total" name="Pengajuan" fill={CHART_COLORS.purple} radius={[4, 4, 0, 0]} maxBarSize={32} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-gray-500">
+                          <Calendar className="h-12 w-12 mb-3 text-gray-300" />
+                          <p>Belum ada data per hari</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserCheck className="h-5 w-5 text-blue-500" />
+                      Petugas Terproduktif (Top 5)
+                    </CardTitle>
+                    <CardDescription>
+                      Petugas dengan penugasan terbanyak
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {analytics.petugas_terproduktif.length > 0 ? (
+                      <div className="space-y-3">
+                        {analytics.petugas_terproduktif.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">
+                                {i + 1}
+                              </div>
+                              <span className="font-medium">{p.nama}</span>
+                            </div>
+                            <Badge variant="secondary">{p.total} penugasan</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                        <Users className="h-12 w-12 mb-3 text-gray-300" />
+                        <p>Belum ada data petugas</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Home className="h-5 w-5 text-green-500" />
+                      Top Kampung Pengajuan (Top 8)
+                    </CardTitle>
+                    <CardDescription>
+                      Kampung dengan pengajuan terbanyak
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {analytics.top_kampung.length > 0 ? (
+                      <div className="space-y-2">
+                        {analytics.top_kampung.map((k, i) => (
+                          <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                            <span className="text-sm truncate">{k.kampung}</span>
+                            <Badge variant="outline" className="shrink-0">{k.total}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                        <Home className="h-12 w-12 mb-3 text-gray-300" />
+                        <p>Belum ada data kampung</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
-            {/* Bakal Datang : Laporan */}
+
+            {/* Laporan / Ringkasan untuk Dicetak */}
             <TabsContent value="reports" className="space-y-6">
-              <div className="w-full h-full mt-35 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">Laporan atau Ringkasan Untuk dicetak</p>
-                  <p className="text-sm text-gray-500">Coming soon</p>
-                </div>
+              <div className="flex justify-end gap-2 mb-4 print:hidden">
+                <Button variant="outline" onClick={() => window.print()}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Cetak Laporan
+                </Button>
+              </div>
+              <div className="print:bg-white">
+                <Card className="print:shadow-none print:border">
+                  <CardHeader className="print:pb-2">
+                    <CardTitle className="text-xl">Ringkasan Eksekutif</CardTitle>
+                    <CardDescription>Dicetak: {reports.ringkasan.tanggal_cetak}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-gray-500">Total Pengajuan</p>
+                        <p className="text-2xl font-bold">{reports.ringkasan.total_pengajuan.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-gray-500">Selesai</p>
+                        <p className="text-2xl font-bold text-green-600">{reports.ringkasan.selesai.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-gray-500">Ditolak</p>
+                        <p className="text-2xl font-bold text-red-600">{reports.ringkasan.ditolak.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-gray-500">Sampah Terkumpul</p>
+                        <p className="text-2xl font-bold">{reports.ringkasan.sampah_ton} Ton</p>
+                        <p className="text-xs text-gray-500">({reports.ringkasan.sampah_kg.toLocaleString()} Kg)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-6 print:shadow-none print:border">
+                  <CardHeader className="print:pb-2">
+                    <CardTitle>Pengajuan per Wilayah</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {reports.per_wilayah.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 font-medium">No</th>
+                              <th className="text-left py-2 font-medium">Desa</th>
+                              <th className="text-left py-2 font-medium">Kecamatan</th>
+                              <th className="text-right py-2 font-medium">Total Pengajuan</th>
+                              <th className="text-center py-2 font-medium">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reports.per_wilayah.map((w, i) => (
+                              <tr key={i} className="border-b">
+                                <td className="py-2">{i + 1}</td>
+                                <td className="py-2">{w.nama}</td>
+                                <td className="py-2">{w.kecamatan}</td>
+                                <td className="py-2 text-right">{w.total_pengajuan}</td>
+                                <td className="py-2 text-center">
+                                  <Badge variant={w.is_active ? 'default' : 'outline'}>
+                                    {w.is_active ? 'Aktif' : 'Nonaktif'}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 py-4">Belum ada data wilayah</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-6 print:shadow-none print:border">
+                  <CardHeader className="print:pb-2">
+                    <CardTitle>Pengajuan Terbaru (20 terakhir)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {reports.pengajuan_terbaru.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 font-medium">#</th>
+                              <th className="text-left py-2 font-medium">Pemohon</th>
+                              <th className="text-left py-2 font-medium">Wilayah</th>
+                              <th className="text-left py-2 font-medium">Kampung</th>
+                              <th className="text-left py-2 font-medium">Status</th>
+                              <th className="text-left py-2 font-medium">Tanggal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reports.pengajuan_terbaru.map((p, i) => (
+                              <tr key={p.id} className="border-b">
+                                <td className="py-2">{i + 1}</td>
+                                <td className="py-2">{p.nama_pemohon}</td>
+                                <td className="py-2">{p.wilayah}</td>
+                                <td className="py-2">{p.kampung}</td>
+                                <td className="py-2">
+                                  <Badge variant={
+                                    p.status === 'selesai' ? 'default' :
+                                    p.status === 'ditolak' ? 'destructive' : 'secondary'
+                                  }>
+                                    {p.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-2">{p.created_at}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 py-4">Belum ada pengajuan</p>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </Tabs>

@@ -52,6 +52,7 @@ export function AppSidebar() {
                         href: '/admin/wilayah',
                         icon: MapPin,
                     },
+                    
                     {
                         title: 'Armada',
                         href: '/admin/armada',
@@ -142,7 +143,7 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar collapsible="icon" variant="floating">
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

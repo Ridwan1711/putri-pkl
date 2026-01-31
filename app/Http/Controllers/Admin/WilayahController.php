@@ -18,6 +18,7 @@ class WilayahController extends Controller
         $wilayah = Wilayah::query()
             ->when($request->search, fn ($query, $search) => $query->where('nama_wilayah', 'like', "%{$search}%")
                 ->orWhere('kecamatan', 'like', "%{$search}%"))
+            ->with('kampung')
             ->latest()
             ->paginate(15);
 
@@ -43,7 +44,7 @@ class WilayahController extends Controller
     public function show(Wilayah $wilayah): Response
     {
         return Inertia::render('admin/wilayah/show', [
-            'wilayah' => $wilayah->load(['petugas', 'pengajuanPengangkutan']),
+            'wilayah' => $wilayah->load(['petugas.user', 'petugas.armada', 'kampung', 'pengajuanPengangkutan', 'armada']),
         ]);
     }
 

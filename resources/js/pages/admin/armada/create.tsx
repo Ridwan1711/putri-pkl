@@ -60,11 +60,12 @@ const statusConfig = {
   nonaktif: { icon: XCircle, color: "text-red-500", bg: "bg-red-50", label: "Nonaktif" },
 };
 
-export default function ArmadaCreate() {
+export default function ArmadaCreate({ wilayah = [] }: { wilayah?: { id: number; nama_wilayah: string; kecamatan: string }[] }) {
   const [activeTab, setActiveTab] = useState('informasi');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
+    wilayah_id: '',
     kode_armada: '',
     jenis_kendaraan: '',
     plat_nomor: '',
@@ -83,14 +84,28 @@ export default function ArmadaCreate() {
     kontrak_sewa: '',
     keterangan: '',
     is_available: true,
+    anggota: [] as { nama: string; no_hp: string }[],
   });
+
+  const addAnggota = () => {
+    if (data.anggota.length < 5) {
+      setData('anggota', [...data.anggota, { nama: '', no_hp: '' }]);
+    }
+  };
+  const removeAnggota = (i: number) => {
+    setData('anggota', data.anggota.filter((_, idx) => idx !== i));
+  };
+  const updateAnggota = (i: number, field: 'nama' | 'no_hp', value: string) => {
+    const next = [...data.anggota];
+    next[i] = { ...next[i], [field]: value };
+    setData('anggota', next);
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
-      toast.error('Harap isi semua field yang wajib diisi');
+    if (!data.wilayah_id || !data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
+      toast.error('Harap isi Desa dan semua field wajib');
       return;
     }
 
@@ -207,6 +222,26 @@ export default function ArmadaCreate() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="wilayah_id">Desa *</Label>
+                          <Select
+                            value={data.wilayah_id}
+                            onValueChange={(value) => setData('wilayah_id', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih Desa" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {wilayah.map((w) => (
+                                <SelectItem key={w.id} value={w.id.toString()}>
+                                  {w.nama_wilayah} - {w.kecamatan}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500">Armada hanya melayani desa ini</p>
+                          <InputError message={errors.wilayah_id} />
+                        </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor="kode_armada" className="flex items-center gap-2">
@@ -541,6 +576,45 @@ export default function ArmadaCreate() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              Anggota Armada (3-5 orang, tanpa akun)
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addAnggota}
+                              disabled={data.anggota.length >= 5}
+                            >
+                              <Plus className="mr-1 h-4 w-4" />
+                              Tambah ({data.anggota.length}/5)
+                            </Button>
+                          </div>
+                          {data.anggota.map((a, i) => (
+                            <div key={i} className="flex gap-2 items-center p-2 border rounded">
+                              <Input
+                                placeholder="Nama"
+                                value={a.nama}
+                                onChange={(e) => updateAnggota(i, 'nama', e.target.value)}
+                                className="flex-1"
+                              />
+                              <Input
+                                placeholder="No HP"
+                                value={a.no_hp}
+                                onChange={(e) => updateAnggota(i, 'no_hp', e.target.value)}
+                                className="w-32"
+                              />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removeAnggota(i)}>
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <p className="text-xs text-gray-500">Anggota tim selain petugas/leader (tanpa akun login)</p>
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="status" className="flex items-center gap-2">
                             <StatusIcon className="h-4 w-4" />

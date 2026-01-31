@@ -9,6 +9,18 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
+test('guest pengajuan requires wilayah_id', function () {
+    $foto = UploadedFile::fake()->image('sampah.jpg');
+    $response = $this->post(route('pengajuan.guest.store'), [
+        'nama_pemohon' => 'Budi',
+        'no_telepon' => '08123456789',
+        'email' => 'budi@example.com',
+        'alamat_lengkap' => 'Jl. Contoh',
+        'foto_sampah' => $foto,
+    ]);
+    $response->assertSessionHasErrors('wilayah_id');
+});
+
 test('guests can submit pengajuan without login', function () {
     $wilayah = Wilayah::factory()->create();
     $foto = UploadedFile::fake()->image('sampah.jpg');
@@ -36,12 +48,13 @@ test('guests can submit pengajuan without login', function () {
 });
 
 test('guest pengajuan is rate limited', function () {
-    $wilayah = Wilayah::factory()->create();
+    $wilayah = Wilayah::factory()->create(['is_active' => true]);
     $foto = UploadedFile::fake()->image('sampah.jpg');
     $data = [
         'nama_pemohon' => 'Budi',
         'no_telepon' => '08123456789',
         'email' => 'budi@example.com',
+        'wilayah_id' => $wilayah->id,
         'alamat_lengkap' => 'Jl. Contoh',
         'foto_sampah' => $foto,
     ];

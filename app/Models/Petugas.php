@@ -54,8 +54,8 @@ class Petugas extends Model
         return $this->hasMany(Penugasan::class);
     }
 
-    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
-        return $this->hasMany(JadwalRutin::class);
+        return $this->hasManyThrough(JadwalRutin::class, Armada::class, 'id', 'armada_id', 'armada_id', 'id');
     }
 }

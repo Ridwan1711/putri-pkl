@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\JadwalRutin;
+use App\Models\Kampung;
 use App\Models\PengajuanPengangkutan;
 use App\Models\Penugasan;
 use App\Models\Petugas;
-use App\Models\Wilayah;
 
 class AutoAssignService
 {
@@ -21,10 +21,9 @@ class AutoAssignService
         }
 
         $hari = (int) now()->addDay()->format('N');
-        $wilayahIds = $this->getWilayahIdsWithinRadius($pengajuan);
-        $jadwalRutin = JadwalRutin::where('petugas_id', $petugas->id)
+        $jadwalRutin = JadwalRutin::where('armada_id', $petugas->armada_id)
             ->hari($hari)
-            ->whereIn('wilayah_id', $wilayahIds)
+            ->with('kampung')
             ->first();
 
         $jadwalAngkut = now()->addDay()->setTime(8, 0, 0);
@@ -42,7 +41,7 @@ class AutoAssignService
             'ref_type' => 'pengajuan',
             'ref_id' => $pengajuan->id,
             'status' => 'dijadwalkan',
-            'keterangan' => 'Auto-assign: pengajuan otomatis diberikan ke petugas '.$petugas->user->name.' (dalam radius '.self::RADIUS_KM.' km)',
+            'keterangan' => 'Auto-assign: pengajuan otomatis diberikan ke petugas '.$petugas->user->name,
             'changed_by' => null,
         ]);
 
@@ -51,64 +50,56 @@ class AutoAssignService
 
     public function findEligiblePetugas(PengajuanPengangkutan $pengajuan): ?Petugas
     {
-        if ($pengajuan->latitude === null || $pengajuan->longitude === null) {
+        $kampungIds = $this->getKampungIdsForPengajuan($pengajuan);
+
+        if ($kampungIds->isEmpty()) {
             return null;
         }
 
-        $wilayahWithinRadius = $this->getWilayahWithDistance($pengajuan);
-
-        if ($wilayahWithinRadius->isEmpty()) {
-            return null;
-        }
-
-        $wilayahIds = $wilayahWithinRadius->pluck('id');
         $hari = (int) now()->addDay()->format('N');
 
-        $petugasCandidates = Petugas::with(['user', 'wilayah', 'jadwalRutin.wilayah'])
-            ->where('is_available', true)
-            ->get()
-            ->filter(function (Petugas $p) use ($hari, $wilayahIds) {
-                if ($p->isLibur($hari)) {
-                    return false;
-                }
-                if ($p->wilayah_id && $wilayahIds->contains($p->wilayah_id)) {
-                    return true;
-                }
-                $jrWilayahIds = $p->jadwalRutin->pluck('wilayah_id')->filter();
+        $jadwalRutin = JadwalRutin::with(['armada.petugas.user'])
+            ->hari($hari)
+            ->whereHas('kampung', fn ($q) => $q->whereIn('kampung.id', $kampungIds))
+            ->get();
 
-                return $jrWilayahIds->intersect($wilayahIds)->isNotEmpty();
-            });
+        foreach ($jadwalRutin as $jr) {
+            $petugas = $jr->armada?->petugas->first();
+            if ($petugas && $petugas->is_available && ! $petugas->isLibur($hari)) {
+                return $petugas;
+            }
+        }
 
-        if ($petugasCandidates->isEmpty()) {
-            return null;
+        return null;
+    }
+
+    private function getKampungIdsForPengajuan(PengajuanPengangkutan $pengajuan): \Illuminate\Support\Collection
+    {
+        if ($pengajuan->kampung_id) {
+            return collect([$pengajuan->kampung_id]);
+        }
+
+        if ($pengajuan->latitude === null || $pengajuan->longitude === null) {
+            return collect();
         }
 
         $pengajuanLat = (float) $pengajuan->latitude;
         $pengajuanLng = (float) $pengajuan->longitude;
-        $wilayahDistances = [];
-        foreach ($wilayahWithinRadius as $w) {
-            $wilayahDistances[$w->id] = $this->haversineDistance(
-                $pengajuanLat,
-                $pengajuanLng,
-                (float) $w->latitude,
-                (float) $w->longitude
-            );
-        }
 
-        return $petugasCandidates->sortBy(function (Petugas $p) use ($wilayahIds, $wilayahDistances) {
-            $relevantWilayahIds = collect();
-            if ($p->wilayah_id && $wilayahIds->contains($p->wilayah_id)) {
-                $relevantWilayahIds->push($p->wilayah_id);
-            }
-            foreach ($p->jadwalRutin as $jr) {
-                if ($wilayahIds->contains($jr->wilayah_id)) {
-                    $relevantWilayahIds->push($jr->wilayah_id);
-                }
-            }
-            $minDist = $relevantWilayahIds->unique()->map(fn ($wid) => $wilayahDistances[$wid] ?? PHP_FLOAT_MAX)->min();
+        return Kampung::whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get()
+            ->filter(function (Kampung $k) use ($pengajuanLat, $pengajuanLng) {
+                $distance = $this->haversineDistance(
+                    $pengajuanLat,
+                    $pengajuanLng,
+                    (float) $k->latitude,
+                    (float) $k->longitude
+                );
 
-            return $minDist ?? PHP_FLOAT_MAX;
-        })->first();
+                return $distance <= self::RADIUS_KM;
+            })
+            ->pluck('id');
     }
 
     private function haversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
@@ -120,31 +111,5 @@ class AutoAssignService
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
-    }
-
-    private function getWilayahIdsWithinRadius(PengajuanPengangkutan $pengajuan): \Illuminate\Support\Collection
-    {
-        return $this->getWilayahWithDistance($pengajuan)->pluck('id');
-    }
-
-    private function getWilayahWithDistance(PengajuanPengangkutan $pengajuan): \Illuminate\Support\Collection
-    {
-        $pengajuanLat = (float) $pengajuan->latitude;
-        $pengajuanLng = (float) $pengajuan->longitude;
-
-        return Wilayah::whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('is_active', true)
-            ->get()
-            ->filter(function (Wilayah $wilayah) use ($pengajuanLat, $pengajuanLng) {
-                $distance = $this->haversineDistance(
-                    $pengajuanLat,
-                    $pengajuanLng,
-                    (float) $wilayah->latitude,
-                    (float) $wilayah->longitude
-                );
-
-                return $distance <= self::RADIUS_KM;
-            });
     }
 }

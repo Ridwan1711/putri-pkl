@@ -90,7 +90,7 @@
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
     /* Base: hijau gelap (forest green) */
-    --sidebar: oklch(0.32 0.20 158);
+    --sidebar: oklch(0.25 0.15 158);
     --sidebar-foreground: oklch(0.97 0.01 120);
     /* Logo/primary: hijau muda untuk kontras */
     --sidebar-primary: oklch(0.55 0.14 155);
@@ -175,3 +175,4 @@
         @apply bg-background text-foreground;
     }
 }
+

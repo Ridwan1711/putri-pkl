@@ -142,16 +142,18 @@ export default function PengajuanShow({ pengajuan, petugas, armada }: Props) {
 
   const petugasTersedia = useMemo(() => {
     const hari = hariFromDate(assignForm.data.jadwal_angkut);
-    const wilayahId = pengajuan.wilayah_id;
+    const kampungId = pengajuan.kampung_id;
     if (!hari) return petugas;
     return petugas.filter((p) => {
       if (p.hari_libur?.includes(hari)) return false;
-      if (!wilayahId) return true;
-      return p.jadwal_rutin?.some(
-        (j) => j.hari === hari && j.wilayah_id === wilayahId
+      if (!kampungId) return true;
+      const jadwal = p.armada?.jadwal_rutin ?? p.armada?.jadwalRutin;
+      if (!jadwal) return false;
+      return jadwal.some(
+        (j) => j.hari === hari && j.kampung?.some((k) => k.id === kampungId)
       );
     });
-  }, [petugas, assignForm.data.jadwal_angkut, pengajuan.wilayah_id]);
+  }, [petugas, assignForm.data.jadwal_angkut, pengajuan.kampung_id]);
 
   const handleImageClick = (imagePath: string) => {
     setSelectedImage(`/storage/${imagePath}`);

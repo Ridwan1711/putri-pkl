@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ArmadaController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\JadwalRutinController;
+use App\Http\Controllers\Admin\KampungController;
 use App\Http\Controllers\Admin\PengajuanController as AdminPengajuanController;
 use App\Http\Controllers\Admin\PetugasController;
 use App\Http\Controllers\Admin\WilayahController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Warga\AduanController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
 use App\Http\Controllers\Warga\PengajuanController as WargaPengajuanController;
 use App\Models\Wilayah;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -25,7 +27,7 @@ use Laravel\Fortify\Features;
 Route::get('/', function () {
     return Inertia::render('welcome', [
         'canRegister' => Features::enabled(Features::registration()),
-        'wilayah' => Wilayah::where('is_active', true)->get(),
+        'wilayah' => Wilayah::with('kampung')->where('is_active', true)->get(),
     ]);
 })->name('home');
 
@@ -35,7 +37,7 @@ Route::post('pengajuan-guest', [GuestPengajuanController::class, 'store'])
 
 // Redirect dashboard based on role
 Route::get('dashboard', function () {
-    $user = auth()->user();
+    $user = Auth::user();
 
     if (! $user) {
         return redirect()->route('login');
@@ -54,6 +56,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('wilayah', WilayahController::class);
+    Route::resource('wilayah.kampung', KampungController::class)->except(['show']);
+    Route::patch('armada/{armada}/status', [ArmadaController::class, 'updateStatus'])->name('armada.update-status');
     Route::resource('armada', ArmadaController::class);
     Route::resource('petugas', PetugasController::class);
 

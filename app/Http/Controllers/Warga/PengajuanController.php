@@ -31,7 +31,7 @@ class PengajuanController extends Controller
     public function create(): Response
     {
         return Inertia::render('warga/pengajuan/create', [
-            'wilayah' => Wilayah::where('is_active', true)->get(),
+            'wilayah' => Wilayah::with('kampung')->where('is_active', true)->get(),
         ]);
     }
 
@@ -69,6 +69,7 @@ class PengajuanController extends Controller
             'pengajuan' => $pengajuan->load([
                 'user',
                 'wilayah',
+                'kampung',
                 'penugasan.petugas.user',
                 'penugasan.petugas.armada',
                 'penugasan.armada',

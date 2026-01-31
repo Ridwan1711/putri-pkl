@@ -10,26 +10,58 @@ export type Wilayah = {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    kampung?: Kampung[];
+};
+
+export type Kampung = {
+    id: number;
+    wilayah_id: number;
+    nama_kampung: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    urutan_rute?: number;
+    created_at: string;
+    updated_at: string;
 };
 
 export type Armada = {
     id: number;
+    wilayah_id?: number | null;
     kode_armada: string;
     jenis_kendaraan: string;
     plat_nomor: string;
     kapasitas: number;
     status: 'aktif' | 'perbaikan' | 'nonaktif';
+    tahun_pembuatan?: number | null;
+    merk?: string | null;
+    nomor_rangka?: string | null;
+    nomor_mesin?: string | null;
+    tanggal_stnk?: string | null;
+    tanggal_keur?: string | null;
+    bahan_bakar?: string | null;
+    konsumsi_bahan_bakar?: number | null;
+    lokasi_parkir?: string | null;
+    asuransi?: string | null;
+    kontrak_sewa?: string | null;
+    keterangan?: string | null;
+    is_available?: boolean;
     created_at: string;
     updated_at: string;
 };
 
 export type JadwalRutinItem = {
     id: number;
-    petugas_id: number;
     armada_id: number;
     hari: number;
-    wilayah_id: number;
-    wilayah?: Wilayah;
+    kampung?: Kampung[];
+};
+
+export type ArmadaAnggota = {
+    id: number;
+    armada_id: number;
+    nama: string;
+    no_hp?: string | null;
+    urutan?: number;
 };
 
 export type Petugas = {
@@ -42,12 +74,12 @@ export type Petugas = {
     created_at: string;
     updated_at: string;
     user?: User;
-    armada?: Armada;
+    armada?: Armada & { jadwal_rutin?: JadwalRutinItem[]; jadwalRutin?: JadwalRutinItem[] };
     wilayah?: Wilayah;
-    jadwal_rutin?: JadwalRutinItem[];
 };
 
 export type PengajuanPengangkutan = {
+    kampung_id?: number | null;
     id: number;
     user_id: number | null;
     nama_pemohon?: string | null;
@@ -65,6 +97,7 @@ export type PengajuanPengangkutan = {
     updated_at: string;
     user?: User;
     wilayah?: Wilayah;
+    kampung?: Kampung;
     penugasan?: Penugasan[];
     riwayat_status?: RiwayatStatus[];
     lampiran?: Lampiran[];

@@ -24,12 +24,18 @@ interface MarkerItem {
     alamat: string;
 }
 
+interface RoutePoint {
+    lat: number;
+    lng: number;
+}
+
 interface Props {
     markers: MarkerItem[];
+    routePoints?: RoutePoint[];
     total: number;
 }
 
-export default function PetaIndex({ markers, total }: Props) {
+export default function PetaIndex({ markers, routePoints = [], total }: Props) {
     const mapMarkers = markers.map((m) => ({
         lat: m.lat,
         lng: m.lng,
@@ -55,7 +61,7 @@ export default function PetaIndex({ markers, total }: Props) {
                 </div>
 
                 <div className="min-h-[500px] flex-1">
-                    <MapViewer markers={mapMarkers} height="500px" />
+                    <MapViewer markers={mapMarkers} routePoints={routePoints} height="500px" />
                 </div>
             </div>
         </AppLayout>

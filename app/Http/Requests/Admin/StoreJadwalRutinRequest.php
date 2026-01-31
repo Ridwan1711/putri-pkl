@@ -14,11 +14,10 @@ class StoreJadwalRutinRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'petugas_id' => ['required', 'exists:petugas,id'],
             'armada_id' => ['required', 'exists:armada,id'],
             'hari' => ['required', 'integer', 'in:1,2,3,4,5,6,7'],
-            'wilayah_ids' => ['required', 'array', 'min:1'],
-            'wilayah_ids.*' => ['required', 'exists:wilayah,id'],
+            'kampung_ids' => ['required', 'array', 'min:1'],
+            'kampung_ids.*' => ['required', 'exists:kampung,id'],
         ];
     }
 }
