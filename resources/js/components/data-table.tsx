@@ -46,14 +46,14 @@ export function DataTable<T extends { id: number | string }>({
     return (
         <div className="space-y-4">
             {/* Desktop Table View */}
-            <div className="hidden overflow-x-auto rounded-lg border md:block">
+            <div className="hidden overflow-x-auto rounded-lg border border-green-200 md:block">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b bg-muted/50">
+                        <tr className="border-b border-green-700 bg-green-800 text-white">
                             {columns.map((column, index) => (
                                 <th
                                     key={index}
-                                    className="px-4 py-3 text-left text-sm font-medium"
+                                    className="px-4 py-3 text-left text-sm border border-white font-medium"
                                 >
                                     {column.header}
                                 </th>
@@ -64,7 +64,7 @@ export function DataTable<T extends { id: number | string }>({
                         {data.data.map((row) => (
                             <tr
                                 key={row.id}
-                                className="border-b transition-colors hover:bg-muted/50"
+                                className="border-b border-green-100 transition-colors hover:bg-green-50"
                                 onClick={() => onRowClick?.(row)}
                                 style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                             >
@@ -74,8 +74,8 @@ export function DataTable<T extends { id: number | string }>({
                                             ? column.accessor(row)
                                             : row[column.accessor];
                                     return (
-                                        <td key={index} className={`px-4 py-3 text-sm ${column.className || ''}`}>
-                                            {content}
+                                        <td key={index} className={`px-4 py-3 text-sm border border-dark ${column.className || ''}`}>
+                                            {content as React.ReactNode}
                                         </td>
                                     );
                                 })}
@@ -90,7 +90,7 @@ export function DataTable<T extends { id: number | string }>({
                 {data.data.map((row) => (
                     <Card
                         key={row.id}
-                        className="p-4"
+                        className="border-green-200 p-4 transition-colors hover:bg-green-50/50"
                         onClick={() => onRowClick?.(row)}
                         style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                     >
@@ -106,7 +106,7 @@ export function DataTable<T extends { id: number | string }>({
                                             <span className="text-sm font-medium text-muted-foreground">
                                                 {column.header}:
                                             </span>
-                                            <span className="text-sm">{content}</span>
+                                            <span className="text-sm">{content as React.ReactNode}</span>
                                         </div>
                                     );
                                 })}
@@ -140,8 +140,8 @@ export function DataTable<T extends { id: number | string }>({
                                     href={link.url}
                                     className={`px-3 py-2 text-sm rounded-md border transition-colors ${
                                         link.active
-                                            ? 'bg-primary text-primary-foreground border-primary'
-                                            : 'hover:bg-muted'
+                                            ? 'bg-green-600 text-white border-green-600'
+                                            : 'border-green-200 text-green-800 hover:bg-green-100'
                                     }`}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />

@@ -42,40 +42,60 @@ class PetugasController extends Controller
 
     public function store(StorePetugasRequest $request): RedirectResponse
     {
-        Petugas::create($request->validated());
+        $validated = $request->validated();
+
+        if (isset($validated['create_user'])) {
+            $user = User::create([
+                'name' => $validated['create_user']['name'],
+                'email' => $validated['create_user']['email'],
+                'password' => $validated['create_user']['password'],
+                'role' => 'petugas',
+                'is_active' => true,
+            ]);
+            $validated['user_id'] = $user->id;
+            unset($validated['create_user']);
+        }
+
+        Petugas::create(collect($validated)->only(['user_id', 'armada_id', 'wilayah_id', 'is_available', 'hari_libur'])->all());
 
         return redirect()->route('admin.petugas.index')
             ->with('success', 'Petugas berhasil ditambahkan.');
     }
 
-    public function show(Petugas $petugas): Response
+    public function show(Petugas $petuga): Response
     {
         return Inertia::render('admin/petugas/show', [
-            'petugas' => $petugas->load(['user', 'armada', 'wilayah', 'penugasan']),
+            'petugas' => $petuga->load(['user', 'armada', 'wilayah', 'penugasan']),
         ]);
     }
 
-    public function edit(Petugas $petugas): Response
+    public function edit(Petugas $petuga): Response
     {
-        return Inertia::render('admin/petugas/edit', [
-            'petugas' => $petugas->load(['user', 'armada', 'wilayah']),
-            'users' => User::where('role', 'petugas')->whereDoesntHave('petugas')->orWhere('id', $petugas->user_id)->get(),
+        $props = [
+            'petugas' => $petuga->load(['user', 'armada', 'wilayah']),
+            'users' => User::where('role', 'petugas')
+                ->where(function ($q) use ($petuga) {
+                    $q->whereDoesntHave('petugas')->orWhere('id', $petuga->user_id);
+                })
+                ->get(),
             'armada' => Armada::where('status', 'aktif')->get(),
             'wilayah' => Wilayah::where('is_active', true)->get(),
-        ]);
+        ];
+
+        return Inertia::render('admin/petugas/edit', $props);
     }
 
-    public function update(UpdatePetugasRequest $request, Petugas $petugas): RedirectResponse
+    public function update(UpdatePetugasRequest $request, Petugas $petuga): RedirectResponse
     {
-        $petugas->update($request->validated());
+        $petuga->update($request->validated());
 
         return redirect()->route('admin.petugas.index')
             ->with('success', 'Petugas berhasil diperbarui.');
     }
 
-    public function destroy(Petugas $petugas): RedirectResponse
+    public function destroy(Petugas $petuga): RedirectResponse
     {
-        $petugas->delete();
+        $petuga->delete();
 
         return redirect()->route('admin.petugas.index')
             ->with('success', 'Petugas berhasil dihapus.');

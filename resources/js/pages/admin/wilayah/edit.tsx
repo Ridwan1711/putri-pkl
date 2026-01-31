@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { MapPicker } from '@/components/map/MapPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,8 @@ export default function WilayahEdit({ wilayah }: Props) {
         nama_wilayah: wilayah.nama_wilayah,
         kecamatan: wilayah.kecamatan,
         geojson: wilayah.geojson || '',
+        latitude: wilayah.latitude ?? null,
+        longitude: wilayah.longitude ?? null,
         is_active: wilayah.is_active,
     });
 
@@ -74,6 +77,21 @@ export default function WilayahEdit({ wilayah }: Props) {
                             required
                         />
                         <InputError message={errors.kecamatan} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Centroid Wilayah (untuk auto-assign 4km)</Label>
+                        <MapPicker
+                            latitude={data.latitude}
+                            longitude={data.longitude}
+                            onLocationSelect={(lat, lng) => setData({ ...data, latitude: lat, longitude: lng })}
+                            height="300px"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Klik peta untuk set titik pusat wilayah. Diperlukan untuk fitur auto-assign pengajuan ke petugas dalam radius 4km.
+                        </p>
+                        <InputError message={errors.latitude} />
+                        <InputError message={errors.longitude} />
                     </div>
 
                     <div className="grid gap-2">

@@ -87,5 +87,9 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        RateLimiter::for('guest-pengajuan', function (Request $request) {
+            return Limit::perHour(3)->by($request->ip());
+        });
     }
 }

@@ -8,19 +8,24 @@ use Illuminate\Database\Eloquent\Model;
 class Penugasan extends Model
 {
     use HasFactory;
+
     protected $table = 'penugasan';
+
     protected $fillable = [
         'pengajuan_id',
         'petugas_id',
         'armada_id',
         'jadwal_angkut',
         'status',
+        'tindak_lanjut',
+        'total_sampah_terangkut',
     ];
 
     protected function casts(): array
     {
         return [
             'jadwal_angkut' => 'datetime',
+            'total_sampah_terangkut' => 'decimal:2',
         ];
     }
 

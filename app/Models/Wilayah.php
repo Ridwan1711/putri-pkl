@@ -8,11 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Wilayah extends Model
 {
     use HasFactory;
+
     protected $table = 'wilayah';
+
     protected $fillable = [
         'nama_wilayah',
         'kecamatan',
         'geojson',
+        'latitude',
+        'longitude',
         'is_active',
     ];
 
@@ -20,6 +24,8 @@ class Wilayah extends Model
     {
         return [
             'is_active' => 'boolean',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
         ];
     }
 
@@ -31,5 +37,10 @@ class Wilayah extends Model
     public function petugas(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Petugas::class);
+    }
+
+    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(JadwalRutin::class);
     }
 }

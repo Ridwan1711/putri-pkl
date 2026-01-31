@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Wilayah;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,6 +20,8 @@ class WilayahFactory extends Factory
             'nama_wilayah' => fake()->city(),
             'kecamatan' => fake()->citySuffix(),
             'geojson' => null,
+            'latitude' => null,
+            'longitude' => null,
             'is_active' => true,
         ];
     }

@@ -5,6 +5,8 @@ export type Wilayah = {
     nama_wilayah: string;
     kecamatan: string;
     geojson: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -21,22 +23,37 @@ export type Armada = {
     updated_at: string;
 };
 
+export type JadwalRutinItem = {
+    id: number;
+    petugas_id: number;
+    armada_id: number;
+    hari: number;
+    wilayah_id: number;
+    wilayah?: Wilayah;
+};
+
 export type Petugas = {
     id: number;
     user_id: number;
     armada_id: number | null;
     wilayah_id: number | null;
     is_available: boolean;
+    hari_libur?: number[] | null;
     created_at: string;
     updated_at: string;
     user?: User;
     armada?: Armada;
     wilayah?: Wilayah;
+    jadwal_rutin?: JadwalRutinItem[];
 };
 
 export type PengajuanPengangkutan = {
     id: number;
-    user_id: number;
+    user_id: number | null;
+    nama_pemohon?: string | null;
+    no_telepon?: string | null;
+    email?: string | null;
+    ip_address?: string | null;
     wilayah_id: number | null;
     alamat_lengkap: string;
     latitude: number | null;
@@ -76,6 +93,8 @@ export type Penugasan = {
     armada_id: number | null;
     jadwal_angkut: string;
     status: 'aktif' | 'selesai' | 'batal';
+    tindak_lanjut?: string | null;
+    total_sampah_terangkut?: number | null;
     created_at: string;
     updated_at: string;
     pengajuan_pengangkutan?: PengajuanPengangkutan;

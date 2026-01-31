@@ -8,13 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DataTable } from '@/components/data-table';
 import { StatusBadge } from '@/components/status-badge';
 import type { BreadcrumbItem } from '@/types';
-import type { Penugasan } from '@/types/models';
+import type { Penugasan, Wilayah } from '@/types/models';
+
+const STATUS_LABELS: Record<string, string> = {
+    diajukan: 'Menunggu Konfirmasi',
+    diverifikasi: 'Menunggu Konfirmasi',
+    dijadwalkan: 'Sedang Diproses',
+    diangkut: 'Dalam Perjalanan',
+    selesai: 'Selesai',
+    ditolak: 'Gagal',
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Penugasan',
-        href: '/petugas/penugasan',
-    },
+    { title: 'Daftar Tugas', href: '/petugas/penugasan' },
 ];
 
 interface Props {
@@ -26,40 +32,50 @@ interface Props {
         total: number;
         links: Array<{ url: string | null; label: string; active: boolean }>;
     };
+    wilayah: Wilayah[];
     filters: {
         status?: string;
         tanggal?: string;
+        wilayah_id?: string;
     };
 }
 
-export default function PenugasanIndex({ penugasan, filters }: Props) {
+export default function PenugasanIndex({ penugasan, wilayah, filters }: Props) {
     const columns = [
         {
-            header: 'Alamat',
-            accessor: (row: Penugasan) => (
-                <div className="max-w-xs truncate">
-                    {row.pengajuan_pengangkutan?.alamat_lengkap || '-'}
-                </div>
-            ),
-        },
-        {
-            header: 'Warga',
-            accessor: (row: Penugasan) => row.pengajuan_pengangkutan?.user?.name || '-',
-        },
-        {
-            header: 'Jadwal',
+            header: 'Nama',
             accessor: (row: Penugasan) =>
-                new Date(row.jadwal_angkut).toLocaleString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
+                row.pengajuan_pengangkutan?.user?.name ?? row.pengajuan_pengangkutan?.nama_pemohon ?? '-',
+        },
+        {
+            header: 'Kecamatan',
+            accessor: (row: Penugasan) => row.pengajuan_pengangkutan?.wilayah?.kecamatan ?? '-',
+        },
+        {
+            header: 'Desa',
+            accessor: (row: Penugasan) => row.pengajuan_pengangkutan?.wilayah?.nama_wilayah ?? '-',
+        },
+        {
+            header: 'No HP',
+            accessor: (row: Penugasan) =>
+                row.pengajuan_pengangkutan?.no_telepon ?? row.pengajuan_pengangkutan?.user?.email ?? '-',
+        },
+        {
+            header: 'Tanggal',
+            accessor: (row: Penugasan) =>
+                new Date(row.jadwal_angkut).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: '2-digit',
                     year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
                 }),
         },
         {
             header: 'Status',
-            accessor: (row: Penugasan) => <StatusBadge status={row.status} />,
+            accessor: (row: Penugasan) => {
+                const status = row.pengajuan_pengangkutan?.status ?? row.status;
+                const label = STATUS_LABELS[status] ?? status;
+                return <StatusBadge status={status as any} />;
+            },
         },
         {
             header: 'Aksi',
@@ -73,62 +89,74 @@ export default function PenugasanIndex({ penugasan, filters }: Props) {
         },
     ];
 
+    const applyFilters = (updates: Record<string, string | undefined>) => {
+        router.get(
+            '/petugas/penugasan',
+            { ...filters, ...updates },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Penugasan" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <h1 className="text-2xl font-bold">Penugasan</h1>
+            <Head title="Data Pengajuan Warga" />
+            <div className="flex h-full flex-1 flex-col gap-4">
+                <h1 className="text-2xl font-bold text-green-700">Data Pengajuan Warga</h1>
 
-                <div className="space-y-4 rounded-lg border p-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                        <div className="grid gap-2 md:w-[180px]">
-                            <Label htmlFor="status">Status</Label>
+                <div className="space-y-4 rounded-lg border bg-white p-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-2">
+                            <Label>Kecamatan / Desa</Label>
                             <Select
-                                value={filters.status || ''}
-                                onValueChange={(value) =>
-                                    router.get(
-                                        window.location.pathname,
-                                        { ...filters, status: value || undefined },
-                                        { preserveState: true, preserveScroll: true, replace: true }
-                                    )
-                                }
+                                value={filters.wilayah_id || 'all'}
+                                onValueChange={(v) => applyFilters({ wilayah_id: v === 'all' ? undefined : v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Semua" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua</SelectItem>
+                                    {wilayah.map((w) => (
+                                        <SelectItem key={w.id} value={w.id.toString()}>
+                                            {w.nama_wilayah} - {w.kecamatan}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Status</Label>
+                            <Select
+                                value={filters.status || 'all'}
+                                onValueChange={(v) => applyFilters({ status: v === 'all' ? undefined : v })}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Semua Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Semua Status</SelectItem>
+                                    <SelectItem value="all">Semua Status</SelectItem>
                                     <SelectItem value="aktif">Aktif</SelectItem>
                                     <SelectItem value="selesai">Selesai</SelectItem>
                                     <SelectItem value="batal">Batal</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="grid gap-2 md:w-[180px]">
-                            <Label htmlFor="tanggal">Tanggal</Label>
+                        <div className="grid gap-2">
+                            <Label>Tanggal</Label>
                             <Input
-                                id="tanggal"
                                 type="date"
                                 value={filters.tanggal || ''}
-                                onChange={(e) =>
-                                    router.get(
-                                        window.location.pathname,
-                                        { ...filters, tanggal: e.target.value || undefined },
-                                        { preserveState: true, preserveScroll: true, replace: true }
-                                    )
-                                }
+                                onChange={(e) => applyFilters({ tanggal: e.target.value || undefined })}
                             />
                         </div>
-                        {(filters.status || filters.tanggal) && (
+                        <div className="flex items-end gap-2">
                             <Button
                                 variant="outline"
-                                onClick={() =>
-                                    router.get(window.location.pathname, {}, { preserveState: true, preserveScroll: true })
-                                }
+                                onClick={() => applyFilters({ status: undefined, tanggal: undefined, wilayah_id: undefined })}
                             >
                                 Reset
                             </Button>
-                        )}
+                        </div>
                     </div>
                 </div>
 
@@ -139,13 +167,18 @@ export default function PenugasanIndex({ penugasan, filters }: Props) {
                     mobileCard={(row) => (
                         <div className="space-y-2">
                             <div className="font-semibold">
-                                {row.pengajuan_pengangkutan?.alamat_lengkap || '-'}
+                                {row.pengajuan_pengangkutan?.user?.name ?? row.pengajuan_pengangkutan?.nama_pemohon ?? '-'}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {row.pengajuan_pengangkutan?.user?.name || '-'}
+                                {row.pengajuan_pengangkutan?.wilayah?.nama_wilayah} -{' '}
+                                {row.pengajuan_pengangkutan?.wilayah?.kecamatan}
                             </div>
                             <div className="flex items-center justify-between">
-                                <StatusBadge status={row.status} />
+                                <StatusBadge
+                                    status={
+                                        (row.pengajuan_pengangkutan?.status ?? row.status) as any
+                                    }
+                                />
                                 <Link href={`/petugas/penugasan/${row.id}`}>
                                     <Button variant="outline" size="sm">
                                         <Eye className="h-4 w-4" />

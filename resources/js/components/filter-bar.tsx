@@ -105,14 +105,14 @@ export function FilterBar({
                 {filters.map((filter) => (
                     <Select
                         key={filter.name}
-                        value={filter.value || ''}
+                        value={filter.value || 'all'}
                         onValueChange={(value) => handleFilterChange(filter.name, value)}
                     >
                         <SelectTrigger className="w-full md:w-[180px]">
                             <SelectValue placeholder={filter.label} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Semua {filter.label}</SelectItem>
+                            <SelectItem value="all">Semua {filter.label}</SelectItem>
                             {filter.options.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
                                     {option.label}

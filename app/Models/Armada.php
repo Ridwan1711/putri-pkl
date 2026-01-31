@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Armada extends Model
 {
     use HasFactory;
-    protected $table = 'armada';    
+
+    protected $table = 'armada';
+
     protected $fillable = [
         'kode_armada',
         'jenis_kendaraan',
@@ -32,5 +34,10 @@ class Armada extends Model
     public function penugasan(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Penugasan::class);
+    }
+
+    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(JadwalRutin::class);
     }
 }

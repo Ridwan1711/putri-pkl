@@ -19,6 +19,8 @@ class UpdatePetugasRequest extends FormRequest
             'armada_id' => ['nullable', 'exists:armada,id'],
             'wilayah_id' => ['nullable', 'exists:wilayah,id'],
             'is_available' => ['sometimes', 'boolean'],
+            'hari_libur' => ['nullable', 'array', 'max:3'],
+            'hari_libur.*' => ['integer', 'in:1,2,3,4,5,6,7'],
         ];
     }
 }

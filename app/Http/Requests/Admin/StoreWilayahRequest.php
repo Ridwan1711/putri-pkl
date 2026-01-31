@@ -17,6 +17,8 @@ class StoreWilayahRequest extends FormRequest
             'nama_wilayah' => ['required', 'string', 'max:255'],
             'kecamatan' => ['required', 'string', 'max:255'],
             'geojson' => ['nullable', 'string'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'is_active' => ['boolean'],
         ];
     }

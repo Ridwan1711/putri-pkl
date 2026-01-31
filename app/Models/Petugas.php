@@ -8,19 +8,30 @@ use Illuminate\Database\Eloquent\Model;
 class Petugas extends Model
 {
     use HasFactory;
+
     protected $table = 'petugas';
+
     protected $fillable = [
         'user_id',
         'armada_id',
         'wilayah_id',
         'is_available',
+        'hari_libur',
     ];
 
     protected function casts(): array
     {
         return [
             'is_available' => 'boolean',
+            'hari_libur' => 'array',
         ];
+    }
+
+    public function isLibur(int $hari): bool
+    {
+        $hariLibur = $this->hari_libur ?? [];
+
+        return in_array($hari, $hariLibur);
     }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -41,5 +52,10 @@ class Petugas extends Model
     public function penugasan(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Penugasan::class);
+    }
+
+    public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(JadwalRutin::class);
     }
 }

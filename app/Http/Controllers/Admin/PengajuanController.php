@@ -21,8 +21,13 @@ class PengajuanController extends Controller
         $pengajuan = PengajuanPengangkutan::with(['user', 'wilayah', 'penugasan.petugas', 'penugasan.armada'])
             ->when($request->status, fn ($query, $status) => $query->where('status', $status))
             ->when($request->wilayah_id, fn ($query, $wilayahId) => $query->where('wilayah_id', $wilayahId))
-            ->when($request->search, fn ($query, $search) => $query->where('alamat_lengkap', 'like', "%{$search}%")
-                ->orWhereHas('user', fn ($q) => $q->where('name', 'like', "%{$search}%")))
+            ->when($request->search, fn ($query, $search) => $query->where(function ($q) use ($search) {
+                $q->where('alamat_lengkap', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
+                    ->orWhere('nama_pemohon', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('no_telepon', 'like', "%{$search}%");
+            }))
             ->latest()
             ->paginate(15);
 
@@ -45,7 +50,9 @@ class PengajuanController extends Controller
                 'riwayatStatus.changedBy',
                 'lampiran',
             ]),
-            'petugas' => Petugas::with(['user', 'armada', 'wilayah'])->where('is_available', true)->get(),
+            'petugas' => Petugas::with(['user', 'armada', 'wilayah', 'jadwalRutin.wilayah'])
+                ->where('is_available', true)
+                ->get(),
             'armada' => Armada::where('status', 'aktif')->get(),
         ]);
     }

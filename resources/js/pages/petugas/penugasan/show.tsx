@@ -130,12 +130,22 @@ export default function PenugasanShow({ penugasan }: Props) {
                                 <CardContent className="space-y-4">
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground">Nama</p>
-                                        <p className="text-base">{pengajuan.user?.name || '-'}</p>
+                                        <p className="text-base">
+                                            {pengajuan.user?.name ?? pengajuan.nama_pemohon ?? '-'}
+                                        </p>
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground">Email</p>
-                                        <p className="text-base">{pengajuan.user?.email || '-'}</p>
+                                        <p className="text-base">
+                                            {pengajuan.user?.email ?? pengajuan.email ?? '-'}
+                                        </p>
                                     </div>
+                                    {pengajuan.no_telepon && (
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground">No. Telepon</p>
+                                            <p className="text-base">{pengajuan.no_telepon}</p>
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground">Wilayah</p>
                                         <p className="text-base">{pengajuan.wilayah?.nama_wilayah || '-'}</p>

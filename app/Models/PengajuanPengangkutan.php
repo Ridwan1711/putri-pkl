@@ -8,9 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class PengajuanPengangkutan extends Model
 {
     use HasFactory;
+
     protected $table = 'pengajuan_pengangkutan';
+
     protected $fillable = [
         'user_id',
+        'nama_pemohon',
+        'no_telepon',
+        'email',
+        'ip_address',
         'wilayah_id',
         'alamat_lengkap',
         'latitude',
@@ -40,7 +46,7 @@ class PengajuanPengangkutan extends Model
 
     public function penugasan(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Penugasan::class);
+        return $this->hasMany(Penugasan::class, 'pengajuan_id');
     }
 
     public function riwayatStatus(): \Illuminate\Database\Eloquent\Relations\HasMany

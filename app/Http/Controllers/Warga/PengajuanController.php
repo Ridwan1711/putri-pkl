@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Warga\StorePengajuanRequest;
 use App\Models\PengajuanPengangkutan;
 use App\Models\Wilayah;
+use App\Services\AutoAssignService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -55,15 +56,14 @@ class PengajuanController extends Controller
             'changed_by' => $request->user()->id,
         ]);
 
+        app(AutoAssignService::class)->assign($pengajuan);
+
         return redirect()->route('warga.pengajuan.index')
             ->with('success', 'Pengajuan berhasil dibuat.');
     }
 
     public function show(PengajuanPengangkutan $pengajuan): Response
     {
-        if ($pengajuan->user_id !== $request->user()->id) {
-            abort(403);
-        }
 
         return Inertia::render('warga/pengajuan/show', [
             'pengajuan' => $pengajuan->load([

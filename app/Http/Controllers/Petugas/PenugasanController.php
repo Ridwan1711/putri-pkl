@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Penugasan;
+use App\Models\Wilayah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,12 +24,14 @@ class PenugasanController extends Controller
             ->with(['pengajuanPengangkutan.user', 'pengajuanPengangkutan.wilayah', 'armada'])
             ->when($request->status, fn ($query, $status) => $query->where('status', $status))
             ->when($request->tanggal, fn ($query, $tanggal) => $query->whereDate('jadwal_angkut', $tanggal))
+            ->when($request->wilayah_id, fn ($query, $wid) => $query->whereHas('pengajuanPengangkutan', fn ($q) => $q->where('wilayah_id', $wid)))
             ->latest('jadwal_angkut')
             ->paginate(15);
 
         return Inertia::render('petugas/penugasan/index', [
             'penugasan' => $penugasan,
-            'filters' => $request->only(['status', 'tanggal']),
+            'wilayah' => Wilayah::where('is_active', true)->get(),
+            'filters' => $request->only(['status', 'tanggal', 'wilayah_id']),
         ]);
     }
 
@@ -74,5 +77,42 @@ class PenugasanController extends Controller
         }
 
         return redirect()->back()->with('success', 'Status penugasan berhasil diperbarui.');
+    }
+
+    public function updateStatusFull(Request $request, Penugasan $penugasan): RedirectResponse
+    {
+        if ($penugasan->petugas_id !== $request->user()->petugas->id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'status' => ['required', 'in:diverifikasi,dijadwalkan,diangkut,selesai,ditolak'],
+            'tindak_lanjut' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $pengajuan = $penugasan->pengajuanPengangkutan;
+        $oldStatus = $pengajuan->status;
+        $newStatus = $request->status;
+
+        $penugasan->update([
+            'tindak_lanjut' => $request->tindak_lanjut,
+        ]);
+
+        if ($newStatus === 'selesai') {
+            $penugasan->update(['status' => 'selesai']);
+        } elseif ($newStatus === 'ditolak') {
+            $penugasan->update(['status' => 'batal']);
+        }
+
+        $pengajuan->update(['status' => $newStatus]);
+        $pengajuan->riwayatStatus()->create([
+            'ref_type' => 'pengajuan',
+            'ref_id' => $pengajuan->id,
+            'status' => $newStatus,
+            'keterangan' => $request->tindak_lanjut ?? "Status diubah dari {$oldStatus} menjadi {$newStatus}",
+            'changed_by' => $request->user()->id,
+        ]);
+
+        return redirect()->back()->with('success', 'Status berhasil diperbarui.');
     }
 }

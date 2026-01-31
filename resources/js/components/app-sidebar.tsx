@@ -1,7 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BookOpen,
-    Folder,
     LayoutGrid,
     MapPin,
     Truck,
@@ -10,6 +8,9 @@ import {
     AlertCircle,
     Calendar,
     Package,
+    ClipboardList,
+    Pencil,
+    History,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -62,6 +63,11 @@ export function AppSidebar() {
                         icon: Users,
                     },
                     {
+                        title: 'Jadwal Rutin',
+                        href: '/admin/jadwal-rutin',
+                        icon: Calendar,
+                    },
+                    {
                         title: 'Pengajuan',
                         href: '/admin/pengajuan',
                         icon: FileText,
@@ -74,7 +80,22 @@ export function AppSidebar() {
                     {
                         title: 'Penugasan',
                         href: '/petugas/penugasan',
-                        icon: Calendar,
+                        icon: ClipboardList,
+                    },
+                    {
+                        title: 'Peta',
+                        href: '/petugas/peta',
+                        icon: MapPin,
+                    },
+                    {
+                        title: 'Update Status',
+                        href: '/petugas/update-status',
+                        icon: Pencil,
+                    },
+                    {
+                        title: 'Riwayat',
+                        href: '/petugas/riwayat',
+                        icon: History,
                     },
                     {
                         title: 'Pengajuan',
@@ -121,13 +142,13 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton  asChild className='flex items-center justify-center h-32 py-4'>
                             <Link href={getDashboardUrl()} prefetch>
-                                <AppLogo />
+                                <img src='/images/logo-tasik.png' alt='Logo Tasikmalaya' className='w-full h-full object-contain'/>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
