@@ -17,7 +17,7 @@ import { StatusTimeline } from '@/components/status-timeline';
 import { MapViewer } from '@/components/map/MapViewer';
 import type { BreadcrumbItem } from '@/types';
 import type { Aduan, RiwayatStatus } from '@/types/models';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/admin/dashboard' },

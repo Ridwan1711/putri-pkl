@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, AlertCircle, MapPin, Camera, Send,
     Trash2, Clock, Users, Smartphone, FileWarning, MessageCircle
@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import InputError from '@/components/input-error';
 import type { BreadcrumbItem } from '@/types';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/warga/dashboard' },
@@ -93,6 +94,14 @@ export default function AduanCreate() {
         e.preventDefault();
         post('/warga/aduan', {
             forceFormData: true,
+            onSuccess: () => {
+                toast.success('Aduan berhasil dibuat');
+                    router.visit('/warga/aduan');
+            },
+            onError: () => {
+                toast.error('Gagal membuat aduan');
+                router.visit('/warga/aduan');
+            },
         });
     };
 

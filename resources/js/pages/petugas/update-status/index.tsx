@@ -297,7 +297,7 @@ function UpdateCard({
 
                     <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Ubah Status</Label>
-                        <Select value={status} onValueChange={setStatus}>
+                        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
                             <SelectTrigger className="bg-white">
                                 <SelectValue />
                             </SelectTrigger>

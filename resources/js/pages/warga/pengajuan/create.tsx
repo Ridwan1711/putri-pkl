@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft, Package, MapPin, Camera, Send,
     Trash2, Building, Home, Scale
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import InputError from '@/components/input-error';
 import type { BreadcrumbItem } from '@/types';
 import type { Wilayah } from '@/types/models';
+import { toast } from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/warga/dashboard' },
@@ -47,6 +48,14 @@ export default function CreatePengajuan({ wilayah }: { wilayah: Wilayah[] }) {
         e.preventDefault();
         post('/warga/pengajuan', {
             forceFormData: true,
+            onSuccess: () => {
+                toast.success('Pengajuan berhasil dibuat');
+                router.visit('/warga/pengajuan');
+            },
+            onError: () => {
+                toast.error('Gagal membuat pengajuan');
+                router.visit('/warga/pengajuan');
+            },
         });
     };
 
