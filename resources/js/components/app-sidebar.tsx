@@ -11,6 +11,7 @@ import {
     ClipboardList,
     Pencil,
     History,
+    Bell,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -52,16 +53,15 @@ export function AppSidebar() {
                         href: '/admin/wilayah',
                         icon: MapPin,
                     },
-                    
-                    {
-                        title: 'Armada',
-                        href: '/admin/armada',
-                        icon: Truck,
-                    },
                     {
                         title: 'Petugas',
                         href: '/admin/petugas',
                         icon: Users,
+                    },
+                    {
+                        title: 'Armada',
+                        href: '/admin/armada',
+                        icon: Truck,
                     },
                     {
                         title: 'Jadwal Rutin',
@@ -72,6 +72,16 @@ export function AppSidebar() {
                         title: 'Pengajuan',
                         href: '/admin/pengajuan',
                         icon: FileText,
+                    },
+                    {
+                        title: 'Aduan',
+                        href: '/admin/aduan',
+                        icon: AlertCircle,
+                    },
+                    {
+                        title: 'Notifikasi',
+                        href: '/admin/notifikasi',
+                        icon: Bell,
                     },
                 ];
 
@@ -103,6 +113,16 @@ export function AppSidebar() {
                         href: '/petugas/pengajuan',
                         icon: FileText,
                     },
+                    {
+                        title: 'Aduan',
+                        href: '/petugas/aduan',
+                        icon: AlertCircle,
+                    },
+                    {
+                        title: 'Notifikasi',
+                        href: '/petugas/notifikasi',
+                        icon: Bell,
+                    },
                 ];
 
             case 'warga':
@@ -117,6 +137,11 @@ export function AppSidebar() {
                         title: 'Aduan',
                         href: '/warga/aduan',
                         icon: AlertCircle,
+                    },
+                    {
+                        title: 'Notifikasi',
+                        href: '/warga/notifikasi',
+                        icon: Bell,
                     },
                 ];
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guest\StoreGuestPengajuanRequest;
 use App\Models\PengajuanPengangkutan;
 use App\Services\AutoAssignService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 
 class PengajuanController extends Controller
@@ -32,6 +33,14 @@ class PengajuanController extends Controller
         ]);
 
         app(AutoAssignService::class)->assign($pengajuan);
+
+        // Send notification to admins and petugas in wilayah
+        NotificationService::notifyNewPengajuan(
+            $pengajuan->id,
+            $pengajuan->wilayah_id,
+            $pengajuan->alamat_lengkap,
+            $pengajuan->nama_pemohon ?? 'Tamu'
+        );
 
         return redirect()
             ->route('home')

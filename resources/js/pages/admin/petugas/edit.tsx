@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'react-hot-toast';
 import InputError from '@/components/input-error';
 import type { BreadcrumbItem, User } from '@/types';
-import type { Petugas, Armada, Wilayah } from '@/types/models';
+import type { Petugas, Wilayah } from '@/types/models';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -67,18 +67,16 @@ const HARI_LIBUR_OPTIONS = [
 interface Props {
   petugas: Petugas;
   users: User[];
-  armada: Armada[];
   wilayah: Wilayah[];
 }
 
-export default function PetugasEdit({ petugas, users, armada, wilayah }: Props) {
+export default function PetugasEdit({ petugas, users, wilayah }: Props) {
   const [activeTab, setActiveTab] = useState('informasi');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [hariLiburCount, setHariLiburCount] = useState(petugas.hari_libur?.length || 0);
 
   const { data, setData, put, processing, errors, reset } = useForm({
     user_id: petugas.user_id?.toString() || '',
-    armada_id: petugas.armada_id?.toString() || '',
     wilayah_id: petugas.wilayah_id?.toString() || '',
     is_available: petugas.is_available,
     hari_libur: (petugas.hari_libur as number[]) || [],
@@ -299,49 +297,23 @@ export default function PetugasEdit({ petugas, users, armada, wilayah }: Props) 
                           Penugasan & Wilayah
                         </CardTitle>
                         <CardDescription>
-                          Tentukan armada dan wilayah penugasan
+                          Tentukan wilayah penugasan petugas
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="armada_id" className="flex items-center gap-2">
-                            <Truck className="h-4 w-4" />
-                            Armada
-                          </Label>
-                          <Select 
-                            value={data.armada_id} 
-                            onValueChange={(value) => setData('armada_id', value)}
-                            disabled={processing}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih Armada (Opsional)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="_none">
-                                <div className="flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4" />
-                                  Tidak ada armada
-                                </div>
-                              </SelectItem>
-                              {armada.map((a) => (
-                                <SelectItem key={a.id} value={a.id.toString()}>
-                                  <div className="flex items-center gap-2">
-                                    <Truck className="h-4 w-4" />
-                                    <div>
-                                      <p className="font-medium">{a.kode_armada}</p>
-                                      <p className="text-xs text-gray-500">{a.jenis_kendaraan}</p>
-                                    </div>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-gray-500">
-                            Kosongkan jika petugas tidak memiliki armada khusus
-                          </p>
-                          <InputError message={errors.armada_id} />
-                        </div>
-
+                        {petugas.armada && (
+                          <div className="p-3 bg-blue-50 rounded-lg mb-4">
+                            <p className="text-sm font-medium">Armada yang dipegang:</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Truck className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium">{petugas.armada.kode_armada}</span>
+                              <span className="text-gray-500">- {petugas.armada.jenis_kendaraan}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Armada dikelola dari menu Armada
+                            </p>
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <Label htmlFor="wilayah_id" className="flex items-center gap-2">
                             <MapPin className="h-4 w-4" />
@@ -609,17 +581,15 @@ export default function PetugasEdit({ petugas, users, armada, wilayah }: Props) 
                   <Separator />
 
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Truck className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">Armada</p>
-                        <p className="font-medium">
-                          {data.armada_id === '_none' || !data.armada_id 
-                            ? 'Tidak ada' 
-                            : armada.find(a => a.id.toString() === data.armada_id)?.kode_armada || '-'}
-                        </p>
+                    {petugas.armada && (
+                      <div className="flex items-center gap-3">
+                        <Truck className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-500">Armada</p>
+                          <p className="font-medium">{petugas.armada.kode_armada}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex items-center gap-3">
                       <MapPin className="h-4 w-4 text-gray-400" />

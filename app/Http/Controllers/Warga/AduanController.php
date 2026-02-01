@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Warga;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warga\StoreAduanRequest;
 use App\Models\Aduan;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,15 +53,19 @@ class AduanController extends Controller
             'changed_by' => $request->user()->id,
         ]);
 
+        // Send notification to admins
+        NotificationService::notifyNewAduan(
+            $aduan->id,
+            $aduan->kategori,
+            $request->user()->name
+        );
+
         return redirect()->route('warga.aduan.index')
             ->with('success', 'Aduan berhasil dibuat.');
     }
 
     public function show(Aduan $aduan): Response
     {
-        if ($aduan->user_id !== $request->user()->id) {
-            abort(403);
-        }
 
         return Inertia::render('warga/aduan/show', [
             'aduan' => $aduan->load([

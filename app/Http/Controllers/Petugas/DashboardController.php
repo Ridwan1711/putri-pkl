@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Petugas;
 
+use App\Enums\Hari;
 use App\Http\Controllers\Controller;
+use App\Models\JadwalRutin;
 use App\Models\Notifikasi;
 use App\Models\Penugasan;
 use Illuminate\Http\Request;
@@ -33,6 +35,38 @@ class DashboardController extends Controller
             ->orderBy('jadwal_angkut')
             ->limit(5)
             ->get();
+
+        // Get jadwal rutin for petugas's armada
+        $jadwalRutin = [];
+        if ($petugas->armada_id) {
+            $jadwalRutinData = JadwalRutin::with(['kampung', 'armada.wilayah'])
+                ->where('armada_id', $petugas->armada_id)
+                ->orderBy('hari')
+                ->get();
+
+            // Get current day (1 = Senin, 7 = Minggu)
+            $today = now()->dayOfWeekIso;
+            $jadwalHariIni = $jadwalRutinData->firstWhere('hari', $today);
+
+            $jadwalRutin = [
+                'armada' => $petugas->armada,
+                'hari_ini' => $jadwalHariIni ? [
+                    'hari' => Hari::tryFrom($jadwalHariIni->hari)?->label() ?? $jadwalHariIni->hari,
+                    'kampung' => $jadwalHariIni->kampung->map(fn ($k) => [
+                        'nama' => $k->nama_kampung,
+                        'urutan' => $k->pivot->urutan ?? 0,
+                    ])->sortBy('urutan')->values()->toArray(),
+                ] : null,
+                'jadwal_mingguan' => $jadwalRutinData->map(fn ($j) => [
+                    'hari' => Hari::tryFrom($j->hari)?->label() ?? $j->hari,
+                    'hari_num' => $j->hari,
+                    'kampung' => $j->kampung->map(fn ($k) => [
+                        'nama' => $k->nama_kampung,
+                        'urutan' => $k->pivot->urutan ?? 0,
+                    ])->sortBy('urutan')->values()->toArray(),
+                ])->keyBy('hari_num')->toArray(),
+            ];
+        }
 
         $jumlahTugas = Penugasan::where('petugas_id', $petugas->id)
             ->whereIn('status', ['aktif'])
@@ -65,6 +99,7 @@ class DashboardController extends Controller
             'performa' => $performa,
             'chart_7_hari' => $chart7Hari,
             'notifikasi' => $notifikasi,
+            'jadwal_rutin' => $jadwalRutin,
         ]);
     }
 

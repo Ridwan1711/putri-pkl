@@ -1,5 +1,15 @@
 import { Head, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { 
+  ArrowLeft, Save, Home, MapPin, Navigation, Target,
+  Settings2, Eye, RefreshCw, Compass, AlertCircle,
+  CheckCircle, XCircle, Shield, Building, Calendar,
+  TrendingUp, ChevronRight, Upload, Download, Users,
+  BarChart3, Layers, Clock, FileText, Globe,
+  Map, RadioTower, Settings, ShieldCheck, Database,
+  Cpu, Navigation2, Zap, History, Activity, Edit3,
+  Copy, ShieldAlert, Target as TargetIcon, RotateCcw
+} from 'lucide-react';
+import { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { MapPicker } from '@/components/map/MapPicker';
@@ -7,28 +17,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import { toast } from 'react-hot-toast';
 import InputError from '@/components/input-error';
 import type { BreadcrumbItem } from '@/types';
 import type { Wilayah } from '@/types/models';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Wilayah',
-        href: '/admin/wilayah',
-    },
-    {
-        title: 'Edit',
-        href: '#',
-    },
-];
 
 interface Props {
     wilayah: Wilayah;
 }
 
 export default function WilayahEdit({ wilayah }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+
+    const { data, setData, put, processing, errors, reset } = useForm({
         nama_wilayah: wilayah.nama_wilayah,
         kecamatan: wilayah.kecamatan,
         geojson: wilayah.geojson || '',
@@ -39,103 +60,705 @@ export default function WilayahEdit({ wilayah }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/admin/wilayah/${wilayah.id}`);
+        
+        if (!data.nama_wilayah.trim() || !data.kecamatan.trim()) {
+            toast.error('Nama desa dan kecamatan wajib diisi');
+            return;
+        }
+
+        put(`/admin/wilayah/${wilayah.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Wilayah berhasil diperbarui');
+            },
+            onError: () => {
+                toast.error('Gagal memperbarui wilayah');
+            },
+        });
     };
+
+    const handleReset = () => {
+        reset();
+        toast.success('Form telah direset ke data asli');
+    };
+
+    const handleCopyOriginal = () => {
+        setData({
+            nama_wilayah: wilayah.nama_wilayah,
+            kecamatan: wilayah.kecamatan,
+            geojson: wilayah.geojson || '',
+            latitude: wilayah.latitude ?? null,
+            longitude: wilayah.longitude ?? null,
+            is_active: wilayah.is_active,
+        });
+        toast.success('Data asli telah dimuat ulang');
+    };
+
+    const getCurrentLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setCurrentLocation({ lat: latitude, lng: longitude });
+                    setData({
+                        ...data,
+                        latitude: latitude,
+                        longitude: longitude,
+                    });
+                    toast.success('Lokasi saat ini berhasil didapatkan');
+                },
+                (error) => {
+                    toast.error('Gagal mendapatkan lokasi saat ini');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            toast.error('Browser tidak mendukung geolocation');
+        }
+    };
+
+    const hasChanges = () => {
+        return (
+            data.nama_wilayah !== wilayah.nama_wilayah ||
+            data.kecamatan !== wilayah.kecamatan ||
+            data.latitude !== wilayah.latitude ||
+            data.longitude !== wilayah.longitude ||
+            data.is_active !== wilayah.is_active
+        );
+    };
+
+    const getChangeCount = () => {
+        let count = 0;
+        if (data.nama_wilayah !== wilayah.nama_wilayah) count++;
+        if (data.kecamatan !== wilayah.kecamatan) count++;
+        if (data.latitude !== wilayah.latitude) count++;
+        if (data.longitude !== wilayah.longitude) count++;
+        if (data.is_active !== wilayah.is_active) count++;
+        return count;
+    };
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/admin' },
+        { title: 'Wilayah', href: '/admin/wilayah' },
+        { title: wilayah.nama_wilayah, href: `/admin/wilayah/${wilayah.id}` },
+        { title: 'Edit', href: '#' },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Edit Wilayah" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/wilayah">
-                        <Button variant="outline" size="sm">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Kembali
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold">Edit Wilayah</h1>
+            <Head title={`Edit Wilayah - ${wilayah.nama_wilayah}`} />
+            
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+                {/* Header Section */}
+                <div className="border-b bg-white">
+                    <div className="container mx-auto px-4 py-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <Link href={`/admin/wilayah/${wilayah.id}`}>
+                                    <Button variant="ghost" size="icon" className="rounded-full">
+                                        <ArrowLeft className="h-5 w-5" />
+                                    </Button>
+                                </Link>
+                                <div>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-12 w-12">
+                                            <AvatarFallback className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">
+                                                <Edit3 className="h-6 w-6" />
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                                                Edit Wilayah
+                                            </h1>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-gray-600">{wilayah.nama_wilayah}</span>
+                                                <span className="text-gray-400">•</span>
+                                                <Badge variant="outline">ID: #{wilayah.id}</Badge>
+                                                <span className="text-gray-400">•</span>
+                                                {hasChanges() && (
+                                                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                                        <Activity className="mr-1 h-3 w-3" />
+                                                        {getChangeCount()} perubahan
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleReset}
+                                    disabled={processing}
+                                >
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Reset Perubahan
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleCopyOriginal}
+                                    disabled={processing}
+                                >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Muat Data Asli
+                                </Button>
+                                <Link href={`/admin/wilayah/${wilayah.id}`}>
+                                    <Button variant="outline">
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Lihat Detail
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <form onSubmit={submit} className="space-y-6 max-w-2xl">
-                    <div className="grid gap-2">
-                        <Label htmlFor="nama_wilayah">Nama Desa *</Label>
-                        <Input
-                            id="nama_wilayah"
-                            value={data.nama_wilayah}
-                            onChange={(e) => setData('nama_wilayah', e.target.value)}
-                            required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Hanya tambahkan Desa dalam Kecamatan yang sudah kerja sama.
-                        </p>
-                        <InputError message={errors.nama_wilayah} />
-                    </div>
+                {/* Main Content */}
+                <div className="container mx-auto px-4 py-6">
+                    <div className="grid gap-6 lg:grid-cols-3">
+                        {/* Left Column - Form */}
+                        <div className="lg:col-span-2">
+                            <form onSubmit={submit} className="space-y-6">
+                                {/* Change Alert */}
+                                {hasChanges() && (
+                                    <Alert className="border-amber-200 bg-amber-50 animate-pulse">
+                                        <Activity className="h-4 w-4 text-amber-600" />
+                                        <AlertTitle className="text-amber-700">Ada perubahan yang belum disimpan</AlertTitle>
+                                        <AlertDescription className="text-amber-600">
+                                            {getChangeCount()} field telah dimodifikasi. Jangan lupa simpan perubahan.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="kecamatan">Kecamatan *</Label>
-                        <Input
-                            id="kecamatan"
-                            value={data.kecamatan}
-                            onChange={(e) => setData('kecamatan', e.target.value)}
-                            required
-                        />
-                        <InputError message={errors.kecamatan} />
-                    </div>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Building className="h-5 w-5 text-blue-500" />
+                                            Informasi Administrasi
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Data dasar wilayah administratif
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="nama_wilayah" className="flex items-center gap-2">
+                                                <Home className="h-4 w-4" />
+                                                Nama Desa *
+                                                {data.nama_wilayah !== wilayah.nama_wilayah && (
+                                                    <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700">
+                                                        Diubah
+                                                    </Badge>
+                                                )}
+                                            </Label>
+                                            <Input
+                                                id="nama_wilayah"
+                                                value={data.nama_wilayah}
+                                                onChange={(e) => setData('nama_wilayah', e.target.value)}
+                                                placeholder="Contoh: Desa Sukamaju"
+                                                required
+                                                className="h-11"
+                                            />
+                                            <div className="flex justify-between">
+                                                <p className="text-xs text-gray-500">
+                                                    Nama resmi desa sesuai data administratif
+                                                </p>
+                                                {data.nama_wilayah !== wilayah.nama_wilayah && (
+                                                    <p className="text-xs text-amber-600">
+                                                        Sebelumnya: {wilayah.nama_wilayah}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <InputError message={errors.nama_wilayah} />
+                                        </div>
 
-                    <div className="grid gap-2">
-                        <Label>Centroid Wilayah (untuk auto-assign 4km)</Label>
-                        <MapPicker
-                            latitude={data.latitude}
-                            longitude={data.longitude}
-                            onLocationSelect={(lat, lng) => setData({ ...data, latitude: lat, longitude: lng })}
-                            height="300px"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Klik peta untuk set titik pusat wilayah. Diperlukan untuk fitur auto-assign pengajuan ke petugas dalam radius 4km.
-                        </p>
-                        <InputError message={errors.latitude} />
-                        <InputError message={errors.longitude} />
-                    </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="kecamatan" className="flex items-center gap-2">
+                                                <Navigation2 className="h-4 w-4" />
+                                                Kecamatan *
+                                                {data.kecamatan !== wilayah.kecamatan && (
+                                                    <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700">
+                                                        Diubah
+                                                    </Badge>
+                                                )}
+                                            </Label>
+                                            <Input
+                                                id="kecamatan"
+                                                value={data.kecamatan}
+                                                onChange={(e) => setData('kecamatan', e.target.value)}
+                                                placeholder="Contoh: Kecamatan Sukajaya"
+                                                required
+                                                className="h-11"
+                                            />
+                                            <div className="flex justify-between">
+                                                <p className="text-xs text-gray-500">
+                                                    Nama kecamatan tempat desa berada
+                                                </p>
+                                                {data.kecamatan !== wilayah.kecamatan && (
+                                                    <p className="text-xs text-amber-600">
+                                                        Sebelumnya: {wilayah.kecamatan}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <InputError message={errors.kecamatan} />
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="geojson">GeoJSON (Opsional)</Label>
-                        <Textarea
-                            id="geojson"
-                            value={data.geojson}
-                            onChange={(e) => setData('geojson', e.target.value)}
-                            placeholder='{"type": "FeatureCollection", "features": [...]}'
-                            rows={10}
-                            className="font-mono text-sm"
-                        />
-                        <InputError message={errors.geojson} />
-                        <p className="text-xs text-muted-foreground">
-                            Masukkan GeoJSON untuk polygon wilayah. Kosongkan jika belum ada.
-                        </p>
-                    </div>
+                                {/* Centroid Section */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <TargetIcon className="h-5 w-5 text-red-500" />
+                                            Titik Centroid Wilayah
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Untuk sistem auto-assign pengajuan ke petugas dalam radius 4km
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="flex items-center gap-2 text-base">
+                                                    <MapPin className="h-4 w-4" />
+                                                    Posisi Centroid
+                                                    {(data.latitude !== wilayah.latitude || data.longitude !== wilayah.longitude) && (
+                                                        <Badge variant="outline"  className="ml-2 bg-blue-50 text-blue-700">
+                                                            Diubah
+                                                        </Badge>
+                                                    )}
+                                                </Label>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    
+                                                    onClick={getCurrentLocation}
+                                                    className="bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-green-200"
+                                                >
+                                                    <Compass className="mr-2 h-4 w-4 text-green-600" />
+                                                    Gunakan Lokasi Saat Ini
+                                                </Button>
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                                <div className="h-[400px] rounded-lg overflow-hidden border shadow-sm">
+                                                    <MapPicker
+                                                        latitude={data.latitude}
+                                                        longitude={data.longitude}
+                                                        onLocationSelect={(lat, lng) => setData({ ...data, latitude: lat, longitude: lng })}
+                                                        height="400px"
+                                                    />
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-sm flex items-center gap-2">
+                                                            <span className="flex h-2 w-2 rounded-full bg-red-500"></span>
+                                                            Latitude
+                                                        </Label>
+                                                        <Input
+                                                            value={data.latitude || ''}
+                                                            onChange={(e) => setData('latitude', parseFloat(e.target.value))}
+                                                            placeholder="-6.2088"
+                                                            className="font-mono h-10"
+                                                        />
+                                                        {data.latitude !== wilayah.latitude && wilayah.latitude && (
+                                                            <p className="text-xs text-amber-600">
+                                                                Sebelumnya: {wilayah.latitude}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-sm flex items-center gap-2">
+                                                            <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
+                                                            Longitude
+                                                        </Label>
+                                                        <Input
+                                                            value={data.longitude || ''}
+                                                            onChange={(e) => setData('longitude', parseFloat(e.target.value))}
+                                                            placeholder="106.8456"
+                                                            className="font-mono h-10"
+                                                        />
+                                                        {data.longitude !== wilayah.longitude && wilayah.longitude && (
+                                                            <p className="text-xs text-amber-600">
+                                                                Sebelumnya: {wilayah.longitude}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                {currentLocation && (
+                                                    <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                                        <div className="flex items-center gap-2">
+                                                            <Navigation className="h-4 w-4 text-green-600" />
+                                                            <p className="text-sm font-medium text-green-700">Lokasi saat ini terdeteksi:</p>
+                                                        </div>
+                                                        <p className="text-sm text-green-600 mt-1 font-mono">
+                                                            Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                                    <p className="text-sm text-amber-700">
+                                                        <span className="font-medium">Penting:</span> Perubahan centroid akan mempengaruhi 
+                                                        semua pengajuan auto-assign yang akan datang.
+                                                    </p>
+                                                </div>
+                                                
+                                                <InputError message={errors.latitude} />
+                                                <InputError message={errors.longitude} />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="is_active"
-                            checked={data.is_active}
-                            onCheckedChange={(checked) => setData('is_active', checked === true)}
-                        />
-                        <Label htmlFor="is_active" className="cursor-pointer">
-                            Aktif
-                        </Label>
-                        <InputError message={errors.is_active} />
-                    </div>
+                                {/* Status Settings */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Settings2 className="h-5 w-5 text-gray-500" />
+                                            Status & Pengaturan
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-full ${data.is_active ? 'bg-green-100' : 'bg-gray-100'}`}>
+                                                    {data.is_active ? (
+                                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                                    ) : (
+                                                        <XCircle className="h-5 w-5 text-gray-600" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="is_active" className="font-medium cursor-pointer text-base">
+                                                        Status Aktif
+                                                        {data.is_active !== wilayah.is_active && (
+                                                            <Badge variant="outline"  className="ml-2 bg-blue-50 text-blue-700">
+                                                                Diubah
+                                                            </Badge>
+                                                        )}
+                                                    </Label>
+                                                    <p className="text-sm text-gray-500">
+                                                        {data.is_active ? 'Wilayah aktif menerima pengajuan' : 'Wilayah dinonaktifkan sementara'}
+                                                    </p>
+                                                    {data.is_active !== wilayah.is_active && (
+                                                        <p className="text-xs text-amber-600 mt-1">
+                                                            Status sebelumnya: {wilayah.is_active ? 'Aktif' : 'Nonaktif'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                id="is_active"
+                                                checked={data.is_active}
+                                                onCheckedChange={(checked) => setData('is_active', checked)}
+                                                disabled={processing}
+                                            />
+                                        </div>
 
-                    <div className="flex gap-4">
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
-                        </Button>
-                        <Link href="/admin/wilayah">
-                            <Button type="button" variant="outline">
-                                Batal
-                            </Button>
-                        </Link>
+                                        <div 
+                                            className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                                            onClick={() => setShowAdvanced(!showAdvanced)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Settings className="h-4 w-4" />
+                                                    <span className="font-medium">Pengaturan Lanjutan</span>
+                                                </div>
+                                                <ChevronRight className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
+                                            </div>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Konfigurasi tambahan untuk sistem auto-assign dan notifikasi
+                                            </p>
+                                        </div>
+
+                                        {showAdvanced && (
+                                            <div className="p-4 border rounded-lg bg-gray-50 space-y-3 animate-in fade-in">
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <Label className="font-medium">Auto-assign Petugas</Label>
+                                                            <p className="text-sm text-gray-500">Otomatis assign pengajuan ke petugas terdekat</p>
+                                                        </div>
+                                                        <Switch defaultChecked />
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <Label className="font-medium">Radius Penugasan</Label>
+                                                            <p className="text-sm text-gray-500">Jarak maksimum untuk assign petugas (km)</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Input 
+                                                                defaultValue="4" 
+                                                                className="w-20 h-8 text-center" 
+                                                                disabled
+                                                            />
+                                                            <span className="text-sm text-gray-500">km</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <Label className="font-medium">Notifikasi Real-time</Label>
+                                                            <p className="text-sm text-gray-500">Kirim notifikasi ke petugas saat ada pengajuan baru</p>
+                                                        </div>
+                                                        <Switch defaultChecked />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Form Buttons */}
+                                <div className="sticky bottom-6">
+                                    <Card className="shadow-lg border-t">
+                                        <CardContent className="p-6">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    {processing ? (
+                                                        <div className="flex items-center gap-2 text-blue-600">
+                                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                                            <span className="text-sm font-medium">Menyimpan perubahan...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col">
+                                                            <div className="text-sm text-gray-600">
+                                                                {hasChanges() ? (
+                                                                    <span className="text-amber-600 font-medium">
+                                                                        Ada {getChangeCount()} perubahan yang belum disimpan
+                                                                    </span>
+                                                                ) : (
+                                                                    'Semua perubahan sudah tersimpan'
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <Clock className="h-3 w-3 text-gray-400" />
+                                                                <span className="text-xs text-gray-500">
+                                                                    Terakhir diubah: {new Date(wilayah.updated_at).toLocaleDateString('id-ID')}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="flex gap-2">
+                                                    <Link href={`/admin/wilayah/${wilayah.id}`}>
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="outline"
+                                                            disabled={processing}
+                                                            className="min-w-24"
+                                                        >
+                                                            Batal
+                                                        </Button>
+                                                    </Link>
+                                                    <Button 
+                                                        type="submit" 
+                                                        disabled={processing || !hasChanges()}
+                                                        className={`min-w-32 ${
+                                                            hasChanges() 
+                                                                ? 'bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800'
+                                                                : 'bg-gray-300 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        <Save className="mr-2 h-4 w-4" />
+                                                        {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Right Column - Preview & Info */}
+                        <div className="space-y-6">
+                            {/* Original Data Card */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <History className="h-5 w-5 text-gray-500" />
+                                        Data Asli
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Data sebelum perubahan
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex flex-col items-center">
+                                        <Avatar className="h-20 w-20 mb-3">
+                                            <AvatarFallback className="text-lg bg-gradient-to-r from-gray-500 to-gray-700 text-white">
+                                                <Globe className="h-8 w-8" />
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <h3 className="text-lg font-bold text-center">
+                                            {wilayah.nama_wilayah}
+                                        </h3>
+                                        <p className="text-sm text-gray-500 text-center">
+                                            {wilayah.kecamatan}
+                                        </p>
+                                        
+                                        <div className="flex gap-2 mt-2">
+                                            <Badge variant={wilayah.is_active ? "default" : "secondary"}>
+                                                {wilayah.is_active ? 'AKTIF' : 'NONAKTIF'}
+                                            </Badge>
+                                            <Badge variant="outline" className="bg-blue-50">
+                                                ID: #{wilayah.id}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    <div className="space-y-3">
+                                        {wilayah.latitude && wilayah.longitude ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-3">
+                                                    <TargetIcon className="h-4 w-4 text-gray-400" />
+                                                    <div>
+                                                        <p className="text-sm text-gray-500">Centroid Asli</p>
+                                                        <p className="font-medium text-xs font-mono">
+                                                            {wilayah.latitude.toFixed(6)}, {wilayah.longitude.toFixed(6)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 text-amber-600">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <div>
+                                                    <p className="text-sm font-medium">Centroid belum ditentukan</p>
+                                                    <p className="text-xs">Auto-assign belum aktif</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-3">
+                                            <Database className="h-4 w-4 text-gray-400" />
+                                            <div>
+                                                <p className="text-sm text-gray-500">Dibuat Pada</p>
+                                                <p className="text-sm">
+                                                    {new Date(wilayah.created_at).toLocaleDateString('id-ID', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Change Summary */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Activity className="h-5 w-5 text-blue-500" />
+                                        Ringkasan Perubahan
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className={`flex items-center justify-between p-2 rounded ${data.nama_wilayah !== wilayah.nama_wilayah ? 'bg-blue-50' : ''}`}>
+                                            <span className="text-sm">Nama Desa</span>
+                                            {data.nama_wilayah !== wilayah.nama_wilayah ? (
+                                                <Badge variant="outline"  className="bg-amber-50 text-amber-700">
+                                                    Diubah
+                                                </Badge>
+                                            ) : (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                            )}
+                                        </div>
+                                        
+                                        <div className={`flex items-center justify-between p-2 rounded ${data.kecamatan !== wilayah.kecamatan ? 'bg-blue-50' : ''}`}>
+                                            <span className="text-sm">Kecamatan</span>
+                                            {data.kecamatan !== wilayah.kecamatan ? (
+                                                <Badge variant="outline"  className="bg-amber-50 text-amber-700">
+                                                    Diubah
+                                                </Badge>
+                                            ) : (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                            )}
+                                        </div>
+                                        
+                                        <div className={`flex items-center justify-between p-2 rounded ${data.latitude !== wilayah.latitude || data.longitude !== wilayah.longitude ? 'bg-blue-50' : ''}`}>
+                                            <span className="text-sm">Centroid</span>
+                                            {data.latitude !== wilayah.latitude || data.longitude !== wilayah.longitude ? (
+                                                <Badge variant="outline"  className="bg-amber-50 text-amber-700">
+                                                    Diubah
+                                                </Badge>
+                                            ) : (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                            )}
+                                        </div>
+                                        
+                                        <div className={`flex items-center justify-between p-2 rounded ${data.is_active !== wilayah.is_active ? 'bg-blue-50' : ''}`}>
+                                            <span className="text-sm">Status</span>
+                                            {data.is_active !== wilayah.is_active ? (
+                                                <Badge variant="outline"  className="bg-amber-50 text-amber-700">
+                                                    Diubah
+                                                </Badge>
+                                            ) : (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    <Alert className="border-blue-200 bg-blue-50">
+                                        <ShieldAlert className="h-4 w-4 text-blue-600" />
+                                        <AlertDescription className="text-sm text-blue-700">
+                                            Perubahan centroid akan mempengaruhi semua pengajuan auto-assign yang akan datang.
+                                        </AlertDescription>
+                                    </Alert>
+                                </CardContent>
+                            </Card>
+
+                            {/* Quick Actions */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <BarChart3 className="h-5 w-5 text-purple-500" />
+                                        Aksi Cepat
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <Link href={`/admin/wilayah/${wilayah.id}`}>
+                                        <Button variant="outline" className="w-full justify-start" >
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            Lihat Detail Wilayah
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/admin/wilayah/${wilayah.id}/kampung`}>
+                                        <Button variant="outline" className="w-full justify-start" >
+                                            <Home className="mr-2 h-4 w-4" />
+                                            Kelola Kampung
+                                        </Button>
+                                    </Link>
+                                    <Button variant="outline" className="w-full justify-start" >
+                                        <Map className="mr-2 h-4 w-4" />
+                                        Lihat di Peta
+                                    </Button>
+                                    <Button variant="outline" className="w-full justify-start" >
+                                        <Users className="mr-2 h-4 w-4" />
+                                        Lihat Petugas
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
         </AppLayout>
     );

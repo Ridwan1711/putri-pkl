@@ -10,7 +10,7 @@ use App\Models\Petugas;
 
 class AutoAssignService
 {
-    private const RADIUS_KM = 4;
+    private const RADIUS_KM = 25;
 
     public function assign(PengajuanPengangkutan $pengajuan): ?Penugasan
     {
@@ -21,17 +21,20 @@ class AutoAssignService
         }
 
         $hari = (int) now()->addDay()->format('N');
-        $jadwalRutin = JadwalRutin::where('armada_id', $petugas->armada_id)
-            ->hari($hari)
-            ->with('kampung')
-            ->first();
+        $armadaId = $petugas->armada?->id;
+        $jadwalRutin = $armadaId
+            ? JadwalRutin::where('armada_id', $armadaId)
+                ->hari($hari)
+                ->with('kampung')
+                ->first()
+            : null;
 
         $jadwalAngkut = now()->addDay()->setTime(8, 0, 0);
 
         $penugasan = Penugasan::create([
             'pengajuan_id' => $pengajuan->id,
             'petugas_id' => $petugas->id,
-            'armada_id' => $jadwalRutin?->armada_id ?? $petugas->armada_id,
+            'armada_id' => $jadwalRutin?->armada_id ?? $armadaId,
             'jadwal_angkut' => $jadwalAngkut,
             'status' => 'aktif',
         ]);
@@ -44,6 +47,26 @@ class AutoAssignService
             'keterangan' => 'Auto-assign: pengajuan otomatis diberikan ke petugas '.$petugas->user->name,
             'changed_by' => null,
         ]);
+
+        // Notify petugas about new penugasan
+        $jadwalFormatted = $jadwalAngkut->format('d M Y H:i');
+        NotificationService::notifyPenugasanAssigned(
+            $penugasan->id,
+            $petugas->user_id,
+            $pengajuan->alamat_lengkap,
+            $jadwalFormatted
+        );
+
+        // Notify warga about status change (only if they have account)
+        if ($pengajuan->user_id) {
+            NotificationService::notifyPengajuanStatusChange(
+                $pengajuan->id,
+                $pengajuan->user_id,
+                null,
+                'dijadwalkan',
+                "Pengajuan Anda telah dijadwalkan untuk diangkut pada {$jadwalFormatted}"
+            );
+        }
 
         return $penugasan;
     }
@@ -58,13 +81,13 @@ class AutoAssignService
 
         $hari = (int) now()->addDay()->format('N');
 
-        $jadwalRutin = JadwalRutin::with(['armada.petugas.user'])
+        $jadwalRutin = JadwalRutin::with(['armada.leader.user'])
             ->hari($hari)
             ->whereHas('kampung', fn ($q) => $q->whereIn('kampung.id', $kampungIds))
             ->get();
 
         foreach ($jadwalRutin as $jr) {
-            $petugas = $jr->armada?->petugas->first();
+            $petugas = $jr->armada?->leader;
             if ($petugas && $petugas->is_available && ! $petugas->isLibur($hari)) {
                 return $petugas;
             }

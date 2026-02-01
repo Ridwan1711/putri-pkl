@@ -7,6 +7,7 @@ use App\Http\Requests\Warga\StorePengajuanRequest;
 use App\Models\PengajuanPengangkutan;
 use App\Models\Wilayah;
 use App\Services\AutoAssignService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -57,6 +58,14 @@ class PengajuanController extends Controller
         ]);
 
         app(AutoAssignService::class)->assign($pengajuan);
+
+        // Send notification to admins and petugas in wilayah
+        NotificationService::notifyNewPengajuan(
+            $pengajuan->id,
+            $pengajuan->wilayah_id,
+            $pengajuan->alamat_lengkap,
+            $request->user()->name
+        );
 
         return redirect()->route('warga.pengajuan.index')
             ->with('success', 'Pengajuan berhasil dibuat.');

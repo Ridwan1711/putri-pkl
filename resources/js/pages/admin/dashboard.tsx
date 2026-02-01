@@ -54,7 +54,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import type { BreadcrumbItem } from '@/types';
 import { Label } from '@/components/ui/label';
 import { toast } from 'react-hot-toast';
@@ -188,6 +189,20 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('monthly');
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportFormat, setExportFormat] = useState('excel');
+  const [exportPeriode, setExportPeriode] = useState('monthly');
+
+  const handleExport = () => {
+    const params = new URLSearchParams({ format: exportFormat, periode: exportPeriode });
+    window.open(`/admin/dashboard/export?${params}`, '_blank');
+    setShowExportDialog(false);
+  };
+
+  const reportsPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintReports = useReactToPrint({
+    contentRef: reportsPrintRef,
+    documentTitle: 'Laporan Dashboard',
+  });
   const analytics = stats.analytics ?? defaultAnalytics;
   const reports = stats.reports ?? defaultReports;
 
@@ -684,6 +699,148 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Alur Layanan Pengangkutan Sampah */}
+              <Card className="border-t-4 border-t-green-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-green-500" />
+                    Alur Layanan Pengangkutan Sampah
+                  </CardTitle>
+                  <CardDescription>
+                    Panduan standar operasional prosedur layanan pengangkutan sampah
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {/* Setup Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-green-700 font-semibold">
+                        <Settings className="h-4 w-4" />
+                        <span>Setup Awal (Admin)</span>
+                      </div>
+                      <div className="space-y-3 pl-6 border-l-2 border-green-200">
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">1</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Registrasi Petugas</p>
+                            <p className="text-xs text-gray-500">Admin mendaftarkan petugas lapangan dengan akun login sebagai kepala regu</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">2</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Pengadaan Armada</p>
+                            <p className="text-xs text-gray-500">Admin mendata kendaraan dan assign 1 petugas sebagai kepala regu per armada</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">3</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Pembentukan Tim</p>
+                            <p className="text-xs text-gray-500">Kepala regu dapat memiliki anggota tim maksimal 5 orang (tanpa akun)</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">4</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Penugasan Wilayah</p>
+                            <p className="text-xs text-gray-500">Armada di-assign ke wilayah/desa tertentu untuk operasional</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pengajuan Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-blue-700 font-semibold">
+                        <FileText className="h-4 w-4" />
+                        <span>Penerimaan & Penjadwalan</span>
+                      </div>
+                      <div className="space-y-3 pl-6 border-l-2 border-blue-200">
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">5</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Penerimaan Pengajuan</p>
+                            <p className="text-xs text-gray-500">Warga mengajukan permintaan pengangkutan sampah melalui sistem</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">6</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Verifikasi</p>
+                            <p className="text-xs text-gray-500">Admin memverifikasi kelayakan atau sistem AutoAssign memverifikasi otomatis</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">7</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Penjadwalan</p>
+                            <p className="text-xs text-gray-500">Admin menjadwalkan pengangkutan dan menugaskan armada ke lokasi</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pelaksanaan Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-orange-700 font-semibold">
+                        <Truck className="h-4 w-4" />
+                        <span>Pelaksanaan & Penyelesaian</span>
+                      </div>
+                      <div className="space-y-3 pl-6 border-l-2 border-orange-200">
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">8</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Pelaksanaan</p>
+                            <p className="text-xs text-gray-500">Tim berangkat ke lokasi, mengangkut sampah, dan update status secara real-time</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">9</div>
+                          <div className="pl-2">
+                            <p className="font-medium text-sm">Penyelesaian</p>
+                            <p className="text-xs text-gray-500">Sampah tiba di TPA/Markas, petugas input total volume, status selesai</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                      <Users className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-2xl font-bold text-green-700">{stats.petugas_aktif}</p>
+                        <p className="text-xs text-green-600">Petugas Siap</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                      <Truck className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <p className="text-2xl font-bold text-blue-700">{stats.grafik_status_armada.aktif}</p>
+                        <p className="text-xs text-blue-600">Armada Aktif</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                      <Globe className="h-8 w-8 text-purple-600" />
+                      <div>
+                        <p className="text-2xl font-bold text-purple-700">{stats.wilayah_aktif}</p>
+                        <p className="text-xs text-purple-600">Wilayah Terlayani</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                      <CheckCircle className="h-8 w-8 text-orange-600" />
+                      <div>
+                        <p className="text-2xl font-bold text-orange-700">{stats.performa.selesai}</p>
+                        <p className="text-xs text-orange-600">Pengajuan Selesai</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Performance Tab */}
@@ -1018,12 +1175,12 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
             {/* Laporan / Ringkasan untuk Dicetak */}
             <TabsContent value="reports" className="space-y-6">
               <div className="flex justify-end gap-2 mb-4 print:hidden">
-                <Button variant="outline" onClick={() => window.print()}>
+                <Button variant="outline" onClick={() => handlePrintReports()}>
                   <Download className="mr-2 h-4 w-4" />
                   Cetak Laporan
                 </Button>
               </div>
-              <div className="print:bg-white">
+              <div ref={reportsPrintRef} className="print:bg-white">
                 <Card className="print:shadow-none print:border">
                   <CardHeader className="print:pb-2">
                     <CardTitle className="text-xl">Ringkasan Eksekutif</CardTitle>
@@ -1157,7 +1314,7 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Format File</Label>
-              <Select defaultValue="excel">
+              <Select value={exportFormat} onValueChange={setExportFormat}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih format" />
                 </SelectTrigger>
@@ -1170,7 +1327,7 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
             </div>
             <div className="space-y-2">
               <Label>Periode Data</Label>
-              <Select defaultValue={timeRange}>
+              <Select value={exportPeriode} onValueChange={setExportPeriode}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih periode" />
                 </SelectTrigger>
@@ -1183,10 +1340,7 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={() => {
-              setShowExportDialog(false);
-              toast.success('Data sedang diproses untuk diunduh');
-            }}>
+            <Button className="w-full" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export Data
             </Button>

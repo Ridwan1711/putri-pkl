@@ -18,6 +18,7 @@ class StoreKampungRequest extends FormRequest
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'urutan_rute' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

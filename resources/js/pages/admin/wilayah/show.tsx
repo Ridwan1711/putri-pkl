@@ -98,7 +98,9 @@ export default function WilayahShow({ wilayah }: Props) {
     };
 
     const exportData = (type: string) => {
-        toast.success(`Data ${type} wilayah ${wilayah.nama_wilayah} berhasil diexport`);
+        const params = new URLSearchParams({ type });
+        if (type !== 'peta') params.set('format', 'pdf');
+        window.open(`/admin/wilayah/${wilayah.id}/export?${params}`, '_blank');
     };
 
     const displayedKampung = showAllKampung ? wilayah.kampung : (wilayah.kampung?.slice(0, 6) || []);
@@ -702,7 +704,7 @@ export default function WilayahShow({ wilayah }: Props) {
                                                     {wilayah.kampung?.length || 0} kampung ditampilkan
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm">
+                                                    <Button variant="outline" size="sm" onClick={() => exportData('peta')} disabled={!wilayah.geojson}>
                                                         <Download className="mr-2 h-4 w-4" />
                                                         Export Peta
                                                     </Button>

@@ -57,16 +57,26 @@ function formatDateForInput(value: string | null | undefined): string {
     return d.toISOString().slice(0, 10);
 }
 
-interface Props {
-    armada: Armada & { anggota?: { id: number; nama: string; no_hp?: string }[] };
-    wilayah: { id: number; nama_wilayah: string; kecamatan: string }[];
+interface AvailablePetugas {
+    id: number;
+    user?: { id: number; name: string; email: string } | null;
 }
 
-export default function ArmadaEdit({ armada, wilayah }: Props) {
+interface Props {
+    armada: Armada & {
+        anggota?: { id: number; nama: string; no_hp?: string }[];
+        leader?: { id: number; user?: { id: number; name: string; email: string } | null } | null;
+    };
+    wilayah: { id: number; nama_wilayah: string; kecamatan: string }[];
+    availablePetugas: AvailablePetugas[];
+}
+
+export default function ArmadaEdit({ armada, wilayah, availablePetugas }: Props) {
     const [activeTab, setActiveTab] = useState('informasi');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     const { data, setData, put, processing, errors } = useForm({
+        petugas_id: armada.petugas_id?.toString() ?? '',
         wilayah_id: armada.wilayah_id?.toString() ?? '',
         kode_armada: armada.kode_armada,
         jenis_kendaraan: armada.jenis_kendaraan,
@@ -102,8 +112,8 @@ export default function ArmadaEdit({ armada, wilayah }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!data.wilayah_id || !data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
-            toast.error('Harap isi semua field yang wajib diisi');
+        if (!data.petugas_id || !data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
+            toast.error('Harap isi Leader dan semua field yang wajib diisi');
             return;
         }
         put(`/admin/armada/${armada.id}`, {
@@ -177,15 +187,47 @@ export default function ArmadaEdit({ armada, wilayah }: Props) {
                                             </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-2">
-                          <Label>Desa *</Label>
+                          <Label className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Leader (Kepala Regu) *
+                          </Label>
                           <Select
-                            value={data.wilayah_id}
-                            onValueChange={(value) => setData('wilayah_id', value)}
+                            value={data.petugas_id}
+                            onValueChange={(value) => setData('petugas_id', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Pilih Desa" />
+                              <SelectValue placeholder="Pilih Petugas sebagai Leader" />
                             </SelectTrigger>
                             <SelectContent>
+                              {availablePetugas.length === 0 ? (
+                                <SelectItem value="_none" disabled>
+                                  Tidak ada petugas tersedia
+                                </SelectItem>
+                              ) : (
+                                availablePetugas.map((p) => (
+                                  <SelectItem key={p.id} value={p.id.toString()}>
+                                    {p.user?.name ?? `Petugas #${p.id}`} - {p.user?.email ?? '-'}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500">
+                            Petugas yang bertanggung jawab sebagai kepala regu armada ini
+                          </p>
+                          <InputError message={errors.petugas_id} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Wilayah/Desa (Opsional)</Label>
+                          <Select
+                            value={data.wilayah_id || '_none'}
+                            onValueChange={(value) => setData('wilayah_id', value === '_none' ? '' : value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih Desa (Opsional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_none">- Belum ditentukan -</SelectItem>
                               {wilayah.map((w) => (
                                 <SelectItem key={w.id} value={w.id.toString()}>
                                   {w.nama_wilayah} - {w.kecamatan}

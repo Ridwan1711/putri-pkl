@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Mail\StatusUpdateMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+
+class SendEmailNotificationJob implements ShouldQueue
+{
+    use Queueable;
+
+    /**
+     * The number of times the job may be attempted.
+     */
+    public int $tries = 3;
+
+    /**
+     * The number of seconds to wait before retrying the job.
+     */
+    public int $backoff = 60;
+
+    /**
+     * Create a new job instance.
+     */
+    public function __construct(
+        public string $email,
+        public string $subject,
+        public string $message,
+        public array $data = []
+    ) {}
+
+    /**
+     * Execute the job.
+     */
+    public function handle(): void
+    {
+        try {
+            Mail::to($this->email)->send(
+                new StatusUpdateMail($this->subject, $this->message, $this->data)
+            );
+
+            Log::info('Email notification sent', [
+                'email' => $this->email,
+                'subject' => $this->subject,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send email notification', [
+                'email' => $this->email,
+                'subject' => $this->subject,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Email notification job failed permanently', [
+            'email' => $this->email,
+            'subject' => $this->subject,
+            'error' => $exception?->getMessage(),
+        ]);
+    }
+}

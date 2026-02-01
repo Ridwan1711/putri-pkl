@@ -12,6 +12,7 @@ class Armada extends Model
     protected $table = 'armada';
 
     protected $fillable = [
+        'petugas_id',
         'wilayah_id',
         'kode_armada',
         'jenis_kendaraan',
@@ -49,9 +50,9 @@ class Armada extends Model
         return $this->belongsTo(Wilayah::class);
     }
 
-    public function petugas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function leader(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->hasMany(Petugas::class);
+        return $this->belongsTo(Petugas::class, 'petugas_id');
     }
 
     public function anggota(): \Illuminate\Database\Eloquent\Relations\HasMany

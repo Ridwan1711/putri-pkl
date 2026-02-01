@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Aduan extends Model
 {
     use HasFactory;
+
     protected $table = 'aduan';
+
     protected $fillable = [
         'user_id',
         'kategori',
@@ -17,6 +19,7 @@ class Aduan extends Model
         'latitude',
         'longitude',
         'status',
+        'tindak_lanjut',
     ];
 
     protected function casts(): array

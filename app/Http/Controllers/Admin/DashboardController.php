@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\DashboardExport;
 use App\Http\Controllers\Controller;
 use App\Models\Armada;
 use App\Models\PengajuanPengangkutan;
 use App\Models\Penugasan;
 use App\Models\Petugas;
 use App\Models\Wilayah;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\Response as HttpFoundationResponse;
 
 class DashboardController extends Controller
 {
@@ -199,5 +203,108 @@ class DashboardController extends Controller
                 'reports' => $reports,
             ],
         ]);
+    }
+
+    public function export(Request $request): HttpFoundationResponse
+    {
+        $format = $request->get('format', 'excel');
+        $periode = $request->get('periode', 'monthly');
+
+        $dateFrom = match ($periode) {
+            'today' => now()->startOfDay(),
+            'weekly' => now()->startOfWeek(),
+            'monthly' => now()->startOfMonth(),
+            'quarterly' => now()->startOfQuarter(),
+            'yearly' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
+        $dateTo = now();
+
+        $totalPengajuan = PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->count();
+        $performa = [
+            'menunggu' => PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->where('status', 'diajukan')->count(),
+            'diproses' => PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->whereIn('status', ['diverifikasi', 'dijadwalkan'])->count(),
+            'dalam_perjalanan' => PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->where('status', 'diangkut')->count(),
+            'selesai' => PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->where('status', 'selesai')->count(),
+            'gagal' => PengajuanPengangkutan::whereBetween('created_at', [$dateFrom, $dateTo])->where('status', 'ditolak')->count(),
+        ];
+
+        $sampahKg = (float) Penugasan::whereHas('pengajuanPengangkutan', fn ($q) => $q->whereBetween('created_at', [$dateFrom, $dateTo]))
+            ->sum('total_sampah_terangkut');
+
+        $reports = [
+            'ringkasan' => [
+                'total_pengajuan' => $totalPengajuan,
+                'selesai' => $performa['selesai'],
+                'ditolak' => $performa['gagal'],
+                'sampah_kg' => round($sampahKg, 2),
+                'sampah_ton' => round($sampahKg / 1000, 3),
+                'tanggal_cetak' => now()->locale('id')->translatedFormat('l, d F Y H:i'),
+            ],
+            'per_wilayah' => Wilayah::query()
+                ->withCount(['pengajuanPengangkutan' => fn ($q) => $q->whereBetween('created_at', [$dateFrom, $dateTo])])
+                ->orderByDesc('pengajuan_pengangkutan_count')
+                ->get()
+                ->map(fn ($w) => [
+                    'nama' => $w->nama_wilayah,
+                    'kecamatan' => $w->kecamatan,
+                    'total_pengajuan' => $w->pengajuan_pengangkutan_count,
+                    'is_active' => $w->is_active,
+                ])
+                ->toArray(),
+            'pengajuan_terbaru' => PengajuanPengangkutan::with(['wilayah:id,nama_wilayah', 'kampung:id,nama_kampung'])
+                ->whereBetween('created_at', [$dateFrom, $dateTo])
+                ->latest()
+                ->limit(20)
+                ->get()
+                ->map(fn ($p) => [
+                    'id' => $p->id,
+                    'nama_pemohon' => $p->user?->name ?? $p->nama_pemohon ?? '-',
+                    'alamat' => $p->alamat_lengkap,
+                    'wilayah' => $p->wilayah?->nama_wilayah ?? '-',
+                    'kampung' => $p->kampung?->nama_kampung ?? '-',
+                    'status' => $p->status,
+                    'created_at' => $p->created_at->format('d/m/Y H:i'),
+                ])
+                ->toArray(),
+        ];
+
+        $filename = 'laporan-dashboard-'.$periode.'-'.now()->format('Y-m-d');
+
+        if ($format === 'excel') {
+            return Excel::download(new DashboardExport($reports), $filename.'.xlsx');
+        }
+
+        if ($format === 'pdf') {
+            $pdf = Pdf::loadView('pdf.dashboard', ['reports' => $reports]);
+
+            return $pdf->download($filename.'.pdf');
+        }
+
+        if ($format === 'csv') {
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'.csv"',
+            ];
+
+            return response()->streamDownload(function () use ($reports) {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['Ringkasan']);
+                fputcsv($handle, ['Total Pengajuan', $reports['ringkasan']['total_pengajuan']]);
+                fputcsv($handle, ['Selesai', $reports['ringkasan']['selesai']]);
+                fputcsv($handle, ['Ditolak', $reports['ringkasan']['ditolak']]);
+                fputcsv($handle, ['Sampah (Ton)', $reports['ringkasan']['sampah_ton']]);
+                fputcsv($handle, []);
+                fputcsv($handle, ['No', 'Desa', 'Kecamatan', 'Total Pengajuan', 'Status']);
+                foreach ($reports['per_wilayah'] as $i => $w) {
+                    fputcsv($handle, [$i + 1, $w['nama'], $w['kecamatan'], $w['total_pengajuan'], ($w['is_active'] ?? true) ? 'Aktif' : 'Nonaktif']);
+                }
+                fclose($handle);
+            }, $filename.'.csv', $headers);
+        }
+
+        abort(400, 'Format tidak valid');
+
+        return new HttpFoundationResponse('Format tidak valid', 400);
     }
 }

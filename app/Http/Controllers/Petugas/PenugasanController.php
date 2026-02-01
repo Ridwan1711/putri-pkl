@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Petugas;
 use App\Http\Controllers\Controller;
 use App\Models\Penugasan;
 use App\Models\Wilayah;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,6 +75,16 @@ class PenugasanController extends Controller
                 'keterangan' => 'Pengangkutan selesai dilakukan oleh petugas',
                 'changed_by' => $request->user()->id,
             ]);
+
+            // Notify warga about status change
+            $pengajuan = $penugasan->pengajuanPengangkutan;
+            NotificationService::notifyPengajuanStatusChange(
+                $pengajuan->id,
+                $pengajuan->user_id,
+                $pengajuan->email,
+                'selesai',
+                'Pengangkutan telah selesai dilakukan'
+            );
         }
 
         return redirect()->back()->with('success', 'Status penugasan berhasil diperbarui.');
@@ -112,6 +123,15 @@ class PenugasanController extends Controller
             'keterangan' => $request->tindak_lanjut ?? "Status diubah dari {$oldStatus} menjadi {$newStatus}",
             'changed_by' => $request->user()->id,
         ]);
+
+        // Notify warga about status change
+        NotificationService::notifyPengajuanStatusChange(
+            $pengajuan->id,
+            $pengajuan->user_id,
+            $pengajuan->email,
+            $newStatus,
+            $request->tindak_lanjut
+        );
 
         return redirect()->back()->with('success', 'Status berhasil diperbarui.');
     }

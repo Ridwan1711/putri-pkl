@@ -105,14 +105,21 @@ export default function PetugasIndex({ petugas, wilayah, filters }: Props) {
     });
   };
 
-  const handleResetFilters = () => {
-    setSearchTerm('');
-    setSelectedWilayah('all');
-    router.visit('/admin/petugas', {
-      preserveState: true,
-      preserveScroll: true,
-    });
-  };
+    const handleResetFilters = () => {
+        setSearchTerm('');
+        setSelectedWilayah('all');
+        router.visit('/admin/petugas', {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const exportData = (format: string) => {
+        const p: Record<string, string> = { format };
+        if (searchTerm) p.search = searchTerm;
+        if (selectedWilayah !== 'all') p.wilayah_id = selectedWilayah;
+        window.open(`/admin/petugas/export?${new URLSearchParams(p)}`, '_blank');
+    };
 
   const toggleAvailability = (petugas: Petugas) => {
     router.patch(`/admin/petugas/${petugas.id}/toggle-availability`, {
@@ -271,9 +278,9 @@ export default function PetugasIndex({ petugas, wilayah, filters }: Props) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>Export Excel</DropdownMenuItem>
-                    <DropdownMenuItem>Export PDF</DropdownMenuItem>
-                    <DropdownMenuItem>Export CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('excel')}>Export Excel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('pdf')}>Export PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('csv')}>Export CSV</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 

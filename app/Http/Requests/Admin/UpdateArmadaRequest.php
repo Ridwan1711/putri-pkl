@@ -15,7 +15,7 @@ class UpdateArmadaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $merge = [];
-        foreach (['tahun_pembuatan', 'merk', 'nomor_rangka', 'nomor_mesin', 'tanggal_stnk', 'tanggal_keur', 'bahan_bakar', 'konsumsi_bahan_bakar', 'lokasi_parkir', 'asuransi', 'kontrak_sewa', 'keterangan'] as $key) {
+        foreach (['wilayah_id', 'tahun_pembuatan', 'merk', 'nomor_rangka', 'nomor_mesin', 'tanggal_stnk', 'tanggal_keur', 'bahan_bakar', 'konsumsi_bahan_bakar', 'lokasi_parkir', 'asuransi', 'kontrak_sewa', 'keterangan'] as $key) {
             if ($this->has($key) && $this->input($key) === '') {
                 $merge[$key] = null;
             }
@@ -30,7 +30,13 @@ class UpdateArmadaRequest extends FormRequest
         $armadaId = $this->route('armada');
 
         return [
-            'wilayah_id' => ['sometimes', 'required', 'exists:wilayah,id'],
+            'petugas_id' => [
+                'sometimes',
+                'required',
+                'exists:petugas,id',
+                Rule::unique('armada', 'petugas_id')->ignore($armadaId),
+            ],
+            'wilayah_id' => ['nullable', 'exists:wilayah,id'],
             'kode_armada' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('armada', 'kode_armada')->ignore($armadaId)],
             'jenis_kendaraan' => ['sometimes', 'required', 'string', 'max:255'],
             'plat_nomor' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('armada', 'plat_nomor')->ignore($armadaId)],

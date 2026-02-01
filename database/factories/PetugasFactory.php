@@ -2,8 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Armada;
-use App\Models\Petugas;
 use App\Models\User;
 use App\Models\Wilayah;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,7 +20,6 @@ class PetugasFactory extends Factory
     {
         return [
             'user_id' => User::factory()->petugas(),
-            'armada_id' => Armada::factory(),
             'wilayah_id' => Wilayah::factory(),
             'is_available' => true,
         ];

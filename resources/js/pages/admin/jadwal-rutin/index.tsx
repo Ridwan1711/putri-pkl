@@ -57,8 +57,15 @@ export type JadwalRutin = {
     id: number;
     armada_id: number;
     hari: number;
-    armada?: Armada & { wilayah?: Wilayah; petugas?: Petugas[] };
-    kampung?: Kampung[];
+    armada?: Armada & { wilayah?: Wilayah; petugas?: Petugas[]; anggota?: { id: number; nama: string }[] };
+    kampung?: (Kampung & { pivot?: { urutan: number } })[];
+};
+
+type JadwalByArmada = {
+    armada: Armada & { wilayah?: Wilayah; petugas?: Petugas[]; anggota?: { id: number; nama: string }[] };
+    petugas: string;
+    anggota: string[];
+    jadwal: Record<number, JadwalRutin>;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -88,22 +95,25 @@ const HARI_OPTIONS = [
 
 interface Props {
     jadwalRutin: JadwalRutin[];
+    jadwalByArmada: JadwalByArmada[];
     armada: (Armada & { wilayah?: Wilayah })[];
     wilayah: (Wilayah & { kampung?: Kampung[] })[];
     hariOptions: Record<number, string>;
-    filters: { hari?: string; armada_id?: string };
+    filters: { hari?: string; armada_id?: string; wilayah_id?: string };
 }
 
 export default function JadwalRutinIndex({
     jadwalRutin,
+    jadwalByArmada,
     armada,
     wilayah,
     filters,
 }: Props) {
     const [deleteId, setDeleteId] = useState<number | null>(null);
-    const [viewMode, setViewMode] = useState<'table' | 'grid' | 'calendar'>('grid');
+    const [viewMode, setViewMode] = useState<'table' | 'grid' | 'calendar' | 'armada'>('grid');
     const [selectedHari, setSelectedHari] = useState(filters.hari || 'all');
     const [selectedArmada, setSelectedArmada] = useState(filters.armada_id || 'all');
+    const [selectedWilayah, setSelectedWilayah] = useState(filters.wilayah_id || 'all');
     const [showAddForm, setShowAddForm] = useState(false);
     
     const form = useForm({
@@ -119,6 +129,7 @@ export default function JadwalRutinIndex({
 
     const handleFilter = () => {
         const params: Record<string, string> = {};
+        if (selectedWilayah !== 'all') params.wilayah_id = selectedWilayah;
         if (selectedHari !== 'all') params.hari = selectedHari;
         if (selectedArmada !== 'all') params.armada_id = selectedArmada;
         router.get('/admin/jadwal-rutin', params, { 
@@ -130,10 +141,26 @@ export default function JadwalRutinIndex({
     const handleResetFilters = () => {
         setSelectedHari('all');
         setSelectedArmada('all');
+        setSelectedWilayah('all');
         router.get('/admin/jadwal-rutin', {}, { 
             preserveState: true,
             preserveScroll: true,
         });
+    };
+
+    const exportData = (format: string) => {
+        const p: Record<string, string> = { format };
+        if (selectedWilayah !== 'all') p.wilayah_id = selectedWilayah;
+        if (selectedHari !== 'all') p.hari = selectedHari;
+        if (selectedArmada !== 'all') p.armada_id = selectedArmada;
+        window.open(`/admin/jadwal-rutin/export?${new URLSearchParams(p)}`, '_blank');
+    };
+
+    const printByArmada = () => {
+        const p: Record<string, string> = {};
+        if (selectedWilayah !== 'all') p.wilayah_id = selectedWilayah;
+        if (selectedArmada !== 'all') p.armada_id = selectedArmada;
+        window.open(`/admin/jadwal-rutin/print?${new URLSearchParams(p)}`, '_blank');
     };
 
     const toggleKampung = (id: number) => {
@@ -225,9 +252,9 @@ export default function JadwalRutinIndex({
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent>
-                                        <DropdownMenuItem>Export Excel</DropdownMenuItem>
-                                        <DropdownMenuItem>Export PDF</DropdownMenuItem>
-                                        <DropdownMenuItem>Export CSV</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('excel')}>Export Excel</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('pdf')}>Export PDF</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('csv')}>Export CSV</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 
@@ -307,8 +334,28 @@ export default function JadwalRutinIndex({
                     {/* Filters and View Controls */}
                     <Card className="mb-6">
                         <CardContent className="p-6">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex flex-col gap-4">
                                 <div className="flex flex-wrap gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-sm">Wilayah/Desa</Label>
+                                        <Select
+                                            value={selectedWilayah}
+                                            onValueChange={setSelectedWilayah}
+                                        >
+                                            <SelectTrigger className="w-[180px]">
+                                                <SelectValue placeholder="Pilih Wilayah" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Semua Wilayah</SelectItem>
+                                                {wilayah.map((w) => (
+                                                    <SelectItem key={w.id} value={w.id.toString()}>
+                                                        {w.nama_wilayah}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    
                                     <div className="grid gap-2">
                                         <Label className="text-sm">Hari</Label>
                                         <Select
@@ -329,8 +376,6 @@ export default function JadwalRutinIndex({
                                         </Select>
                                     </div>
                                     
-                                    
-                                    
                                     <div className="flex items-end gap-2">
                                         <Button onClick={handleFilter}>
                                             <Filter className="mr-2 h-4 w-4" />
@@ -343,30 +388,49 @@ export default function JadwalRutinIndex({
                                     </div>
                                 </div>
                                 
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant={viewMode === 'grid' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setViewMode('grid')}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t">
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant={viewMode === 'grid' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setViewMode('grid')}
+                                        >
+                                            <Grid3x3 className="mr-2 h-4 w-4" />
+                                            Grid
+                                        </Button>
+                                        <Button
+                                            variant={viewMode === 'table' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setViewMode('table')}
+                                        >
+                                            <List className="mr-2 h-4 w-4" />
+                                            Tabel
+                                        </Button>
+                                        <Button
+                                            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setViewMode('calendar')}
+                                        >
+                                            <Calendar className="mr-2 h-4 w-4" />
+                                            Kalender
+                                        </Button>
+                                        <Button
+                                            variant={viewMode === 'armada' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setViewMode('armada')}
+                                        >
+                                            <Truck className="mr-2 h-4 w-4" />
+                                            Per Armada
+                                        </Button>
+                                    </div>
+                                    
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={printByArmada}
+                                        className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                                     >
-                                        <Grid3x3 className="mr-2 h-4 w-4" />
-                                        Grid
-                                    </Button>
-                                    <Button
-                                        variant={viewMode === 'table' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setViewMode('table')}
-                                    >
-                                        <List className="mr-2 h-4 w-4" />
-                                        Tabel
-                                    </Button>
-                                    <Button
-                                        variant={viewMode === 'calendar' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setViewMode('calendar')}
-                                    >
-                                        <Calendar className="mr-2 h-4 w-4" />
-                                        Kalender
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Print Jadwal Per Armada
                                     </Button>
                                 </div>
                             </div>
@@ -570,7 +634,7 @@ export default function JadwalRutinIndex({
                                 </div>
                             </CardContent>
                         </Card>
-                    ) : (
+                    ) : viewMode === 'calendar' ? (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Kalender Jadwal</CardTitle>
@@ -579,7 +643,7 @@ export default function JadwalRutinIndex({
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-7 gap-2">
+                                <div className="grid grid-cols-4 gap-2">
                                     {HARI_OPTIONS.map((hari) => {
                                         const jadwalHariIni = jadwalByHari[parseInt(hari.value)] || [];
                                         return (
@@ -606,6 +670,116 @@ export default function JadwalRutinIndex({
                                 </div>
                             </CardContent>
                         </Card>
+                    ) : (
+                        /* Per Armada View */
+                        <div className="space-y-6">
+                            {jadwalByArmada.length === 0 ? (
+                                <Card>
+                                    <CardContent className="py-12 text-center">
+                                        <Truck className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                                        <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                                            Tidak ada jadwal ditemukan
+                                        </h3>
+                                        <p className="text-gray-500 mb-4">
+                                            {selectedWilayah !== 'all'
+                                                ? 'Tidak ada jadwal untuk wilayah ini'
+                                                : 'Mulai dengan menambahkan jadwal baru'}
+                                        </p>
+                                        <Button onClick={() => setShowAddForm(true)}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Tambah Jadwal
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                jadwalByArmada.map((data) => (
+                                    <Card key={data.armada?.id} className="overflow-hidden">
+                                        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <CardTitle className="text-white flex items-center gap-2">
+                                                        <Truck className="h-5 w-5" />
+                                                        {data.armada?.kode_armada}
+                                                    </CardTitle>
+                                                    <CardDescription className="text-blue-100 mt-1">
+                                                        {data.armada?.jenis_kendaraan} | {data.armada?.wilayah?.nama_wilayah}
+                                                    </CardDescription>
+                                                </div>
+                                                <Badge variant="outline" className="bg-white/10 text-white border-white/30">
+                                                    {Object.keys(data.jadwal).length} hari
+                                                </Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-6">
+                                            <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <UserCheck className="h-4 w-4 text-gray-500" />
+                                                        <span className="font-medium text-gray-600">Petugas/Leader:</span>
+                                                        <span>{data.petugas}</span>
+                                                    </div>
+                                                    <div className="flex items-start gap-2 text-sm">
+                                                        <Users className="h-4 w-4 text-gray-500 mt-0.5" />
+                                                        <span className="font-medium text-gray-600">Anggota:</span>
+                                                        <span>
+                                                            {data.anggota.length > 0 
+                                                                ? data.anggota.slice(0, 5).join(', ') + (data.anggota.length >= 5 ? ' (maks. 5)' : '')
+                                                                : <span className="text-gray-400 italic">Belum ada anggota</span>
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <Separator className="mb-4" />
+                                            
+                                            <h4 className="font-semibold mb-4 flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-blue-600" />
+                                                Jadwal Harian
+                                            </h4>
+                                            
+                                            <div className="grid gap-3">
+                                                {HARI_OPTIONS.map((hari) => {
+                                                    const jadwalHari = data.jadwal[parseInt(hari.value)];
+                                                    return (
+                                                        <div 
+                                                            key={hari.value} 
+                                                            className={`flex items-start gap-4 p-3 rounded-lg border ${
+                                                                jadwalHari ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                                                            }`}
+                                                        >
+                                                            <div className="w-20 font-semibold text-sm">
+                                                                {hari.label}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                {jadwalHari ? (
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {(jadwalHari.kampung ?? [])
+                                                                            .sort((a, b) => (a.pivot?.urutan ?? 0) - (b.pivot?.urutan ?? 0))
+                                                                            .map((k, idx) => (
+                                                                            <Badge 
+                                                                                key={k.id} 
+                                                                                variant="outline" 
+                                                                                className="bg-white"
+                                                                            >
+                                                                                <span className="text-blue-600 mr-1">Rute {k.pivot?.urutan ?? idx}:</span>
+                                                                                {k.nama_kampung}
+                                                                            </Badge>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400 text-sm italic">Tidak ada jadwal</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

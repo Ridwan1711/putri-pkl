@@ -44,13 +44,21 @@ test('auto assign creates penugasan when petugas in radius', function () {
         'hari_libur' => array_values(array_diff([1, 2, 3, 4, 5, 6, 7], [$tomorrowDay])),
         'is_available' => true,
     ]);
-    $armada = Armada::factory()->create();
-    JadwalRutin::create([
+    $armada = Armada::factory()->create([
+        'wilayah_id' => $wilayah->id,
         'petugas_id' => $petugas->id,
+        'status' => 'aktif',
+    ]);
+    $kampung = \App\Models\Kampung::factory()->create([
+        'wilayah_id' => $wilayah->id,
+        'latitude' => -7.35,
+        'longitude' => 108.11,
+    ]);
+    $jadwal = JadwalRutin::create([
         'armada_id' => $armada->id,
         'hari' => (int) now()->addDay()->format('N'),
-        'wilayah_id' => $wilayah->id,
     ]);
+    $jadwal->kampung()->attach($kampung->id, ['urutan' => 0]);
 
     $pengajuan = PengajuanPengangkutan::factory()->create([
         'user_id' => $user->id,

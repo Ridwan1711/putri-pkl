@@ -14,15 +14,8 @@ class StorePetugasRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $merge = [];
-        if ($this->filled('armada_id') && ($this->input('armada_id') === '' || $this->input('armada_id') === '_none')) {
-            $merge['armada_id'] = null;
-        }
         if ($this->filled('wilayah_id') && ($this->input('wilayah_id') === '' || $this->input('wilayah_id') === '_none')) {
-            $merge['wilayah_id'] = null;
-        }
-        if ($merge !== []) {
-            $this->merge($merge);
+            $this->merge(['wilayah_id' => null]);
         }
     }
 
@@ -39,7 +32,6 @@ class StorePetugasRequest extends FormRequest
             'create_user.name' => ['required_with:create_user', 'string', 'max:255'],
             'create_user.email' => ['required_with:create_user', 'email', 'unique:users,email'],
             'create_user.password' => ['required_with:create_user', 'string', 'min:8', 'confirmed'],
-            'armada_id' => ['nullable', 'exists:armada,id'],
             'wilayah_id' => ['nullable', 'exists:wilayah,id'],
             'is_available' => ['boolean'],
             'hari_libur' => ['nullable', 'array', 'max:3'],

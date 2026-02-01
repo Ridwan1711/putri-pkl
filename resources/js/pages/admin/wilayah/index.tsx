@@ -322,9 +322,15 @@ export default function WilayahIndex({ wilayah, filters }: Props) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent>
-                                        <DropdownMenuItem>Export Excel</DropdownMenuItem>
-                                        <DropdownMenuItem>Export PDF</DropdownMenuItem>
-                                        <DropdownMenuItem>Export CSV</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { const p: Record<string, string> = { format: 'excel' }; if (searchTerm) p.search = searchTerm; window.open(`/admin/wilayah/export?${new URLSearchParams(p)}`, '_blank'); }}>
+                                            Export Excel
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { const p: Record<string, string> = { format: 'pdf' }; if (searchTerm) p.search = searchTerm; window.open(`/admin/wilayah/export?${new URLSearchParams(p)}`, '_blank'); }}>
+                                            Export PDF
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { const p: Record<string, string> = { format: 'csv' }; if (searchTerm) p.search = searchTerm; window.open(`/admin/wilayah/export?${new URLSearchParams(p)}`, '_blank'); }}>
+                                            Export CSV
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 

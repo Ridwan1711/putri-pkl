@@ -6,7 +6,8 @@ import {
   ChevronRight, RefreshCw, Layers, FileText,
   Home, Mail, Phone, TrendingUp, ExternalLink
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { 
@@ -142,8 +143,31 @@ export default function PengajuanIndex({ pengajuan, wilayah, filters }: Props) {
   };
 
   const handleBulkAction = (action: string) => {
+    if (action === 'export') {
+      const p: Record<string, string> = { format: 'excel' };
+      if (selectedStatus !== 'all') p.status = selectedStatus;
+      if (selectedWilayah !== 'all') p.wilayah_id = selectedWilayah;
+      if (searchTerm) p.search = searchTerm;
+      window.open(`/admin/pengajuan/export?${new URLSearchParams(p)}`, '_blank');
+      return;
+    }
     toast.error(`Aksi bulk: ${action} (Akan datang)`);
   };
+
+  const exportData = (format: string) => {
+    const p: Record<string, string> = { format };
+    if (selectedStatus !== 'all') p.status = selectedStatus;
+    if (selectedWilayah !== 'all') p.wilayah_id = selectedWilayah;
+    if (searchTerm) p.search = searchTerm;
+    window.open(`/admin/pengajuan/export?${new URLSearchParams(p)}`, '_blank');
+  };
+
+  const [printPengajuan, setPrintPengajuan] = useState<PengajuanPengangkutan | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: printPengajuan ? `Laporan Pengajuan #${printPengajuan.id}` : 'Laporan Pengajuan',
+  });
 
   // Calculate stats
   const stats = {
@@ -193,7 +217,7 @@ export default function PengajuanIndex({ pengajuan, wilayah, filters }: Props) {
                   <MapPin className="mr-2 h-4 w-4" />
                   Lihat Peta
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPrintPengajuan(row)}>
                   <FileText className="mr-2 h-4 w-4" />
                   Cetak Laporan
                 </DropdownMenuItem>
@@ -360,16 +384,13 @@ export default function PengajuanIndex({ pengajuan, wilayah, filters }: Props) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>Export Excel</DropdownMenuItem>
-                    <DropdownMenuItem>Export PDF</DropdownMenuItem>
-                    <DropdownMenuItem>Export CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('excel')}>Export Excel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('pdf')}>Export PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('csv')}>Export CSV</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
-                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Pengajuan Baru
-                </Button>
+               
               </div>
             </div>
           </div>
@@ -484,17 +505,6 @@ export default function PengajuanIndex({ pengajuan, wilayah, filters }: Props) {
           {/* Filters and Actions */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="all">Semua ({stats.total})</TabsTrigger>
-                  <TabsTrigger value="diajukan">Diajukan ({getStatusCount('diajukan')})</TabsTrigger>
-                  <TabsTrigger value="diverifikasi">Diverifikasi ({getStatusCount('diverifikasi')})</TabsTrigger>
-                  <TabsTrigger value="dijadwalkan">Dijadwalkan ({getStatusCount('dijadwalkan')})</TabsTrigger>
-                  <TabsTrigger value="diangkut">Diangkut ({getStatusCount('diangkut')})</TabsTrigger>
-                  <TabsTrigger value="selesai">Selesai ({getStatusCount('selesai')})</TabsTrigger>
-                  <TabsTrigger value="ditolak">Ditolak ({getStatusCount('ditolak')})</TabsTrigger>
-                </TabsList>
-              </Tabs>
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
@@ -791,6 +801,66 @@ export default function PengajuanIndex({ pengajuan, wilayah, filters }: Props) {
           )}
         </div>
       </div>
+
+      {/* Print Dialog */}
+      <Dialog open={!!printPengajuan} onOpenChange={(open) => !open && setPrintPengajuan(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Cetak Laporan Pengajuan</DialogTitle>
+            <DialogDescription>
+              Ringkasan pengajuan untuk dicetak
+            </DialogDescription>
+          </DialogHeader>
+          {printPengajuan && (
+            <div className="space-y-4">
+              <div ref={printRef} className="space-y-4 p-4 border rounded-lg bg-white">
+                <h3 className="font-bold text-lg">Laporan Pengajuan #{printPengajuan.id}</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500">Pemohon</p>
+                    <p className="font-medium">{printPengajuan.user?.name || printPengajuan.nama_pemohon || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Telepon</p>
+                    <p className="font-medium">{printPengajuan.no_telepon || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Email</p>
+                    <p className="font-medium">{printPengajuan.user?.email || printPengajuan.email || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Wilayah</p>
+                    <p className="font-medium">{printPengajuan.wilayah?.nama_wilayah || '-'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Alamat</p>
+                    <p className="font-medium">{printPengajuan.alamat_lengkap || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Status</p>
+                    <p className="font-medium">{printPengajuan.status || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Estimasi Volume</p>
+                    <p className="font-medium">{printPengajuan.estimasi_volume || 0} m³</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Tanggal</p>
+                    <p className="font-medium">{new Date(printPengajuan.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setPrintPengajuan(null)}>Tutup</Button>
+                <Button onClick={() => handlePrint()}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Cetak
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Map Dialog */}
       <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>

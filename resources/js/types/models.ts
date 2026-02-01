@@ -20,12 +20,15 @@ export type Kampung = {
     latitude?: number | null;
     longitude?: number | null;
     urutan_rute?: number;
+    status: string;
+    is_active: boolean;
     created_at: string;
     updated_at: string;
 };
 
 export type Armada = {
     id: number;
+    petugas_id?: number | null;
     wilayah_id?: number | null;
     kode_armada: string;
     jenis_kendaraan: string;
@@ -47,6 +50,7 @@ export type Armada = {
     is_available?: boolean;
     created_at: string;
     updated_at: string;
+    leader?: Petugas;
 };
 
 export type JadwalRutinItem = {
@@ -67,7 +71,6 @@ export type ArmadaAnggota = {
 export type Petugas = {
     id: number;
     user_id: number;
-    armada_id: number | null;
     wilayah_id: number | null;
     is_available: boolean;
     hari_libur?: number[] | null;
@@ -112,6 +115,7 @@ export type Aduan = {
     latitude: number | null;
     longitude: number | null;
     status: 'masuk' | 'diproses' | 'ditindak' | 'selesai' | 'ditolak';
+    tindak_lanjut?: string | null;
     created_at: string;
     updated_at: string;
     user?: User;

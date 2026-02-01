@@ -57,9 +57,17 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
+type ArmadaWithLeader = Armada & {
+    leader?: {
+        id: number;
+        user?: { id: number; name: string; email: string } | null;
+    } | null;
+    wilayah?: { id: number; nama_wilayah: string } | null;
+};
+
 interface Props {
     armada: {
-        data: Armada[];
+        data: ArmadaWithLeader[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -119,7 +127,14 @@ export default function ArmadaIndex({ armada, filters }: Props) {
         });
     };
 
-    const toggleStatus = (armada: Armada) => {
+    const exportData = (format: string) => {
+        const p: Record<string, string> = { format };
+        if (searchTerm) p.search = searchTerm;
+        if (selectedStatus !== 'all') p.status = selectedStatus;
+        window.open(`/admin/armada/export?${new URLSearchParams(p)}`, '_blank');
+    };
+
+    const toggleStatus = (armada: ArmadaWithLeader) => {
         const nextStatus = armada.status === 'aktif' ? 'nonaktif' : 'aktif';
         router.patch(`/admin/armada/${armada.id}/status`, {
             status: nextStatus,
@@ -150,7 +165,7 @@ export default function ArmadaIndex({ armada, filters }: Props) {
     const columns = [
         {
             header: 'Armada',
-            accessor: (row: Armada) => (
+            accessor: (row: ArmadaWithLeader) => (
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-blue-100 text-blue-600">
@@ -166,20 +181,34 @@ export default function ArmadaIndex({ armada, filters }: Props) {
         },
         {
             header: 'Detail',
-            accessor: (row: Armada) => (
+            accessor: (row: ArmadaWithLeader) => (
                 <div className="space-y-1">
                     <p className="font-medium">{row.jenis_kendaraan}</p>
                     <div className="flex items-center gap-2">
                         <Package className="h-3 w-3 text-gray-400" />
                         <span className="text-sm">Kapasitas: {row.kapasitas} m³</span>
                     </div>
-                  
+                </div>
+            ),
+        },
+        {
+            header: 'Leader',
+            accessor: (row: ArmadaWithLeader) => (
+                <div className="space-y-1">
+                    {row.leader?.user ? (
+                        <>
+                            <p className="font-medium">{row.leader.user.name}</p>
+                            <p className="text-xs text-gray-500">{row.leader.user.email}</p>
+                        </>
+                    ) : (
+                        <span className="text-sm text-gray-400">- Belum ada -</span>
+                    )}
                 </div>
             ),
         },
         {
             header: 'Status',
-            accessor: (row: Armada) => {
+            accessor: (row: ArmadaWithLeader) => {
                 const config = statusConfig[row.status as keyof typeof statusConfig];
                 const Icon = config?.icon || AlertCircle;
                 return (
@@ -199,7 +228,7 @@ export default function ArmadaIndex({ armada, filters }: Props) {
         },
         {
             header: 'Aksi',
-            accessor: (row: Armada) => (
+            accessor: (row: ArmadaWithLeader) => (
                 <div className="flex items-center gap-1">
                     <Link href={`/admin/armada/${row.id}`}>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
@@ -284,9 +313,9 @@ export default function ArmadaIndex({ armada, filters }: Props) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent>
-                                        <DropdownMenuItem>Export Excel</DropdownMenuItem>
-                                        <DropdownMenuItem>Export PDF</DropdownMenuItem>
-                                        <DropdownMenuItem>Export CSV</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('excel')}>Export Excel</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('pdf')}>Export PDF</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('csv')}>Export CSV</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 

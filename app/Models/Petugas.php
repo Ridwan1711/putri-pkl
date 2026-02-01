@@ -13,7 +13,6 @@ class Petugas extends Model
 
     protected $fillable = [
         'user_id',
-        'armada_id',
         'wilayah_id',
         'is_available',
         'hari_libur',
@@ -39,9 +38,9 @@ class Petugas extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function armada(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function armada(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->belongsTo(Armada::class);
+        return $this->hasOne(Armada::class, 'petugas_id');
     }
 
     public function wilayah(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -56,6 +55,6 @@ class Petugas extends Model
 
     public function jadwalRutin(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
-        return $this->hasManyThrough(JadwalRutin::class, Armada::class, 'id', 'armada_id', 'armada_id', 'id');
+        return $this->hasManyThrough(JadwalRutin::class, Armada::class, 'petugas_id', 'armada_id', 'id', 'id');
     }
 }

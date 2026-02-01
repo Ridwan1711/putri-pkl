@@ -60,11 +60,22 @@ const statusConfig = {
   nonaktif: { icon: XCircle, color: "text-red-500", bg: "bg-red-50", label: "Nonaktif" },
 };
 
-export default function ArmadaCreate({ wilayah = [] }: { wilayah?: { id: number; nama_wilayah: string; kecamatan: string }[] }) {
+interface AvailablePetugas {
+  id: number;
+  user?: { id: number; name: string; email: string } | null;
+}
+
+interface Props {
+  wilayah?: { id: number; nama_wilayah: string; kecamatan: string }[];
+  availablePetugas?: AvailablePetugas[];
+}
+
+export default function ArmadaCreate({ wilayah = [], availablePetugas = [] }: Props) {
   const [activeTab, setActiveTab] = useState('informasi');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
+    petugas_id: '',
     wilayah_id: '',
     kode_armada: '',
     jenis_kendaraan: '',
@@ -104,8 +115,8 @@ export default function ArmadaCreate({ wilayah = [] }: { wilayah?: { id: number;
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!data.wilayah_id || !data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
-      toast.error('Harap isi Desa dan semua field wajib');
+    if (!data.petugas_id || !data.kode_armada || !data.jenis_kendaraan || !data.plat_nomor || !data.kapasitas) {
+      toast.error('Harap isi Leader (Petugas) dan semua field wajib');
       return;
     }
 
@@ -223,15 +234,47 @@ export default function ArmadaCreate({ wilayah = [] }: { wilayah?: { id: number;
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="wilayah_id">Desa *</Label>
+                          <Label htmlFor="petugas_id" className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Leader (Kepala Regu) *
+                          </Label>
                           <Select
-                            value={data.wilayah_id}
-                            onValueChange={(value) => setData('wilayah_id', value)}
+                            value={data.petugas_id}
+                            onValueChange={(value) => setData('petugas_id', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Pilih Desa" />
+                              <SelectValue placeholder="Pilih Petugas sebagai Leader" />
                             </SelectTrigger>
                             <SelectContent>
+                              {availablePetugas.length === 0 ? (
+                                <SelectItem value="_none" disabled>
+                                  Tidak ada petugas tersedia
+                                </SelectItem>
+                              ) : (
+                                availablePetugas.map((p) => (
+                                  <SelectItem key={p.id} value={p.id.toString()}>
+                                    {p.user?.name ?? `Petugas #${p.id}`} - {p.user?.email ?? '-'}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500">
+                            Petugas yang bertanggung jawab sebagai kepala regu armada ini
+                          </p>
+                          <InputError message={errors.petugas_id} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="wilayah_id">Wilayah/Desa (Opsional)</Label>
+                          <Select
+                            value={data.wilayah_id}
+                            onValueChange={(value) => setData('wilayah_id', value === '_none' ? '' : value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih Desa (Opsional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_none">- Belum ditentukan -</SelectItem>
                               {wilayah.map((w) => (
                                 <SelectItem key={w.id} value={w.id.toString()}>
                                   {w.nama_wilayah} - {w.kecamatan}
@@ -239,7 +282,7 @@ export default function ArmadaCreate({ wilayah = [] }: { wilayah?: { id: number;
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-gray-500">Armada hanya melayani desa ini</p>
+                          <p className="text-xs text-gray-500">Wilayah operasi armada (bisa diatur nanti)</p>
                           <InputError message={errors.wilayah_id} />
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
